@@ -16,7 +16,7 @@ An API key is **optional but recommended**. Without a key, all features still wo
 
 ### Get an API Key
 
-Visit https://anysearch.com/settings/api-keys to create a free API key.
+Visit https://anysearch.com/console/api-keys to create a free API key.
 
 ### Key Priority
 
