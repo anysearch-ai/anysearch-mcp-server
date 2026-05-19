@@ -5,7 +5,7 @@ Unified real-time search MCP server supporting general web search, vertical doma
 ## Features
 
 - **General Web Search** — open-ended natural language queries
-- **Vertical Domain Search** — structured queries across 23 domains (finance, academic, security, legal, code, etc.)
+- **Vertical Domain Search** — structured queries across domains (finance, academic, security, legal, code, etc.)
 - **Parallel Batch Search** — up to 5 independent queries in one call
 - **URL Content Extraction** — fetch and extract full page content as Markdown
 - **Anonymous Access** — works without an API key (with lower rate limits)
