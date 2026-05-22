@@ -58,7 +58,7 @@ For agents that support the Streamable HTTP transport (MCP spec 2025-03-26+):
 {
   "mcp": {
     "anysearch": {
-      "type": "streamable-http",
+      "type": "remote",
       "url": "https://api.anysearch.com/mcp",
       "headers": {
         "Authorization": "Bearer ${ANYSEARCH_API_KEY}"
