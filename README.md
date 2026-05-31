@@ -348,3 +348,40 @@ Before vertical search, you **must** call `list_domains` for the target domain a
 - Search queries, extracted URLs, and API keys are sent to `https://api.anysearch.com`
 - Do not use for queries containing sensitive information (passwords, personal data, trade secrets) unless you trust the provider
 - Avoid pasting API keys directly in chat — use environment variables or `.env` files
+
+## FAQ
+
+### What is anysearch-mcp-server?
+
+Unified real-time search MCP server for AI agents.
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| General Web Search | Available |
+| Vertical Domain Search | Available |
+| Parallel Batch Search | Available |
+| URL Content Extraction | Available |
+| Anonymous Access | Available |
+
+### Installation
+
+MCP transport: Streamable HTTP / SSE via proxy / stdio via proxy
+
+### Is it free?
+
+Yes, open source and free to use.
+
+### How to contribute?
+
+Check the repository for contributing guidelines.
+
+### Where to get help?
+
+- GitHub Issues: https://github.com/anysearch-ai/anysearch-mcp-server/issues
+- Documentation: Check README and docs folder
+
+### License
+
+Check the repository LICENSE file for details.
