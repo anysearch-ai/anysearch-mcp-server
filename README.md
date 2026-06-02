@@ -1,4 +1,4 @@
-# AnySearch MCP Server
+# AnySearch MCP Server <img alt="Version" src="https://img.shields.io/badge/version-v2.1.0-blue">
 
 Unified real-time search MCP server supporting general web search, vertical domain search, parallel batch search, and full-page URL content extraction.
 
@@ -245,29 +245,26 @@ Execute a search query — general or vertical domain.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `query` | string | Yes | Search query. For vertical search, follow the `query_format` from `list_domains` |
-| `domain` | string | No | Vertical domain (e.g. `finance`, `academic`, `security`) |
-| `sub_domain` | string | No | Sub-domain routing key (e.g. `finance.us_stock`). Required for vertical search |
-| `sub_domain_params` | object | No | Extra params per sub_domain schema |
-| `content_types` | string[] | No | Filter: `web`, `news`, `code`, `doc`, `academic`, `data`, `image`, `video`, `audio` |
-| `zone` | string | No | `cn` or `intl`. Required when sub_domain marks `zone=CN` |
-| `max_results` | integer | No | 1–100, default 10 |
-| `freshness` | string | No | `day`, `week`, `month`, `year` |
+| `query` | string | Yes | Natural language search query. ONE intent per call |
+| `domain` | string | No | Vertical domain (e.g. `finance`, `academic`, `security`). Must come from `get_sub_domains` enum |
+| `sub_domain` | string | No | Sub-domain routing key (e.g. `finance.us_stock`). Must come from `get_sub_domains` output |
+| `sub_domain_params` | object | No | Structured params from `get_sub_domains` params column. NEVER invent values |
+| `max_results` | integer | No | 1–10, default 10 |
 
-### `list_domains`
+### `get_sub_domains`
 
-Query the vertical domain directory. **Must be called before vertical search** to discover available sub_domains and their query formats.
+Query the vertical domain directory. **Required before any search that uses a domain** — returns valid sub_domains and their parameter schemas.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `domain` | string | One of | Single domain to query |
-| `domains` | string[] | One of | Batch up to 5 domains |
+| `domains` | string[] | One of | Batch up to 5 domains (preferred — covers more ground) |
 
-Returns a Markdown table: `sub_domain | description | query_format | params_schema | zone`
+Returns a Markdown table: `sub_domain | description | params`
 
 ### `batch_search`
 
-Execute 2–5 independent search queries in parallel. Single failure does not block others.
+Execute 1–5 independent search queries in parallel. Single failure does not block others.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -280,71 +277,3 @@ Fetch full page content from a URL and return as Markdown. Truncated at 50,000 c
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `url` | string | Yes | Target URL (`http://` or `https://`) |
-
-## Decision Flow
-
-```
-User query
-  |
-  +-- Has structured identifiers? (Stock:/CVE:/DOI:/IATA:/patent etc.)
-  |     YES -> 1) list_domains -> discover sub_domain & query_format
-  |             2) search with domain + sub_domain + zone
-  |
-  +-- Multiple independent intents?
-  |     YES -> batch_search
-  |
-  +-- Need deeper content than snippets?
-  |     YES -> extract the URL
-  |
-  +-- Otherwise -> search (general)
-```
-
-## Vertical Search Constraints
-
-Before vertical search, you **must** call `list_domains` for the target domain and follow:
-
-1. **`query_format`** — exact format for the query string (e.g. raw ticker, not natural language)
-2. **`params_schema`** — JSON schema for optional extra parameters
-3. **`zone`** — if `CN`, you must set `zone: "cn"` in the search call
-4. **`sub_domain` selection** — match user intent to the best sub_domain description
-
-## Supported Domains
-
-`code` `tech` `fashion` `travel` `home` `ecommerce` `gaming` `film` `music` `finance` `academic` `legal` `business` `ip` `security` `education` `health` `religion` `geo` `environment` `energy` `ugc`
-
-## Examples
-
-### General search
-
-```json
-{ "query": "quantum computing breakthroughs 2025", "max_results": 5, "freshness": "month" }
-```
-
-### Vertical search (stock)
-
-```json
-{ "query": "AAPL", "domain": "finance", "sub_domain": "finance.us_stock", "max_results": 5 }
-```
-
-### Batch search
-
-```json
-{
-  "queries": [
-    { "query": "AAPL", "domain": "finance", "sub_domain": "finance.us_stock" },
-    { "query": "python async http client", "domain": "code", "sub_domain": "code.general" }
-  ]
-}
-```
-
-### Extract URL
-
-```json
-{ "url": "https://en.wikipedia.org/wiki/Quantum_computing" }
-```
-
-## Security Notes
-
-- Search queries, extracted URLs, and API keys are sent to `https://api.anysearch.com`
-- Do not use for queries containing sensitive information (passwords, personal data, trade secrets) unless you trust the provider
-- Avoid pasting API keys directly in chat — use environment variables or `.env` files
