@@ -1,12 +1,12 @@
-# AnySearch MCP Server <img alt="Version" src="https://img.shields.io/badge/version-v2.1.0-blue">
+# AnySearch MCP Server
 
 Unified real-time search MCP server supporting general web search, vertical domain search, parallel batch search, and full-page URL content extraction.
 
 ## Features
 
 - **General Web Search** — open-ended natural language queries
-- **Vertical Domain Search** — structured queries across domains (finance, academic, security, legal, code, etc.)
-- **Parallel Batch Search** — up to 5 independent queries in one call
+- **Vertical Domain Search** — structured queries across finance, academic, security, legal, code, and more
+- **Parallel Batch Search** — execute multiple independent queries in one call
 - **URL Content Extraction** — fetch and extract full page content as Markdown
 - **Anonymous Access** — works without an API key (with lower rate limits)
 
