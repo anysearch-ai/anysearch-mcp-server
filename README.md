@@ -14,9 +14,60 @@ Unified real-time search MCP server supporting general web search, vertical doma
 
 An API key is **optional but recommended**. Without a key, all features still work via anonymous access with lower rate limits.
 
+### Register for an API Key (Recommended)
+
+The agent can register the user and obtain an API key in a **single call** — no verification code, no manual signup. Ask the user for a **real email address**: it becomes the account username, and a randomly generated password is emailed to it.
+
+```bash
+curl -s -X POST "https://api.anysearch.com/v1/auth/email/register" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "you@example.com"}'
+```
+
+Success response (`code: 0`) returns the account info and a one-time plaintext API key:
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "username": "you@example.com",
+    "email": "you@example.com",
+    "login_url": "https://www.anysearch.com/login",
+    "api_key": {
+      "id": "key_xxxxxxxx",
+      "key": "as_sk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "key_prefix": "as_sk_xxxxxx...",
+      "name": "default",
+      "rate_limit": 100,
+      "quota_limit": 0,
+      "expires_at": null,
+      "created_at": "2026-06-23T10:23:00Z"
+    }
+  }
+}
+```
+
+On success the agent MUST:
+
+1. Put `data.api_key.key` into the MCP server config as the `Authorization: Bearer <key>` value (and/or set `ANYSEARCH_API_KEY`) — it is shown only once (it can also be retrieved later from the dashboard).
+2. Tell the user their username (= email), the `login_url`, and that a **random password has been emailed to that address**.
+
+Error handling (HTTP 200 unless noted; always read the `code` field):
+
+| code  | message                    | what to do                                                                 |
+| ----- | -------------------------- | -------------------------------------------------------------------------- |
+| 40001 | `invalid_email`            | ask the user to re-enter the email                                         |
+| 40901 | `email_already_registered` | email is taken — tell the user to sign in at `login_url`; do **not** retry  |
+| 42901 | `rate_limited`             | wait `data.retry_after_seconds`, then retry (per-IP limit, anti-abuse)      |
+| 50001 | `internal_error`           | retry later or fall back to anonymous                                      |
+| 50002 | `key_creation_failed`      | account created but key failed (`api_key` is null) — tell the user to sign in and create a key manually |
+
+> The email **must be real and reachable** — the password is delivered there. There is **no verification code** in this flow; the agent only ever asks for an email.
+
 ### Get an API Key
 
-Visit https://anysearch.com/console/api-keys to create a free API key.
+Alternatively, visit https://anysearch.com/console/api-keys to create a free API key.
 
 ### Key Priority
 
@@ -61,7 +112,8 @@ For agents that support the Streamable HTTP transport (MCP spec 2025-03-26+):
       "type": "remote",
       "url": "https://api.anysearch.com/mcp",
       "headers": {
-        "Authorization": "Bearer ${ANYSEARCH_API_KEY}"
+        "Authorization": "Bearer ${ANYSEARCH_API_KEY}",
+        "X-Anysearch-Client": "mcp/1.0.0"
       }
     }
   }
@@ -77,14 +129,15 @@ For agents that support the Streamable HTTP transport (MCP spec 2025-03-26+):
       "type": "streamable-http",
       "url": "https://api.anysearch.com/mcp",
       "headers": {
-        "Authorization": "Bearer ${ANYSEARCH_API_KEY}"
+        "Authorization": "Bearer ${ANYSEARCH_API_KEY}",
+        "X-Anysearch-Client": "mcp/1.0.0"
       }
     }
   }
 }
 ```
 
-> Without an API key, omit the `headers` section. The server will use anonymous access automatically.
+> Without an API key, drop only the `Authorization` line but **keep** `X-Anysearch-Client`. The server will use anonymous access automatically.
 
 ### stdio (Via Proxy)
 
@@ -106,6 +159,8 @@ For agents that only support stdio transport. Two proxy options:
         "mcp-remote",
         "https://api.anysearch.com/mcp",
         "--header",
+        "X-Anysearch-Client: mcp/1.0.0",
+        "--header",
         "Authorization: Bearer ${ANYSEARCH_API_KEY}"
       ]
     }
@@ -126,6 +181,8 @@ For agents that only support stdio transport. Two proxy options:
         "mcp-remote",
         "https://api.anysearch.com/mcp",
         "--header",
+        "X-Anysearch-Client: mcp/1.0.0",
+        "--header",
         "Authorization: Bearer ${ANYSEARCH_API_KEY}"
       ]
     }
@@ -145,6 +202,8 @@ For agents that only support stdio transport. Two proxy options:
         "mcp-remote",
         "https://api.anysearch.com/mcp",
         "--header",
+        "X-Anysearch-Client: mcp/1.0.0",
+        "--header",
         "Authorization: Bearer ${ANYSEARCH_API_KEY}"
       ]
     }
@@ -152,7 +211,7 @@ For agents that only support stdio transport. Two proxy options:
 }
 ```
 
-> Without an API key, omit the `"--header"` and `"Authorization: Bearer ..."` args.
+> Without an API key, omit only the `"Authorization: Bearer ..."` `--header` pair; **keep** the `X-Anysearch-Client` `--header`.
 
 #### Option B: supergateway
 
@@ -170,6 +229,8 @@ For agents that only support stdio transport. Two proxy options:
         "supergateway",
         "--streamableHttp",
         "https://api.anysearch.com/mcp",
+        "--header",
+        "X-Anysearch-Client: mcp/1.0.0",
         "--oauth2Bearer",
         "${ANYSEARCH_API_KEY}"
       ]
@@ -191,6 +252,7 @@ npx -y supergateway \
   --streamableHttp https://api.anysearch.com/mcp \
   --outputTransport sse \
   --port 8000 \
+  --header "X-Anysearch-Client: mcp/1.0.0" \
   --oauth2Bearer <your_api_key>
 ```
 
