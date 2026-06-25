@@ -52,6 +52,7 @@ On success the agent MUST:
 
 1. Put `data.api_key.key` into the MCP server config as the `Authorization: Bearer <key>` value (and/or set `ANYSEARCH_API_KEY`) — it is shown only once (it can also be retrieved later from the dashboard).
 2. Tell the user their username (= email), the `login_url`, and that a **random password has been emailed to that address**.
+3. Relay this note to the user: *A verification email has been sent to your inbox. If you don't see it within a few minutes, please check your spam or junk folder. You may need to mark it as "Not Spam" to ensure future emails arrive correctly.*
 
 Error handling (HTTP 200 unless noted; always read the `code` field):
 
