@@ -104,13 +104,45 @@ AnySearch MCP server **natively supports Streamable HTTP** transport (MCP spec 2
 
 For agents that support the Streamable HTTP transport (MCP spec 2025-03-26+):
 
-**OpenCode** (`~/.opencode/config.json` or project `opencode.json`):
+**OpenCode** (v1.x+ / v0.1.x+):
+
+Config file location depends on your OpenCode version. Run `opencode -v` to check.
+
+| Version | Global Config Path | Project Config Path |
+|---------|-------------------|-------------------|
+| **1.x+** (current) | `~/.config/opencode/opencode.json` | `opencode.json` or `.opencode/opencode.json` |
+| **0.1.x ~ 0.15.x** | `~/.config/opencode/opencode.json` | `opencode.json` |
+| **0.0.x** (legacy Go) | `~/.opencode.json` | `.opencode.json` |
+
+> **Windows**: Replace `~/.config/opencode/` with `%USERPROFILE%\.config\opencode\`.
+
+For v1.x+ and v0.1.x+ (MCP key: `mcp`):
 
 ```json
 {
+  "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "anysearch": {
       "type": "remote",
+      "url": "https://api.anysearch.com/mcp",
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer ${ANYSEARCH_API_KEY}",
+        "X-Anysearch-Client": "mcp/1.0.0"
+      }
+    }
+  }
+}
+```
+
+<details>
+<summary>Legacy Go version (0.0.x) — MCP key: <code>mcpServers</code></summary>
+
+```json
+{
+  "mcpServers": {
+    "anysearch": {
+      "type": "sse",
       "url": "https://api.anysearch.com/mcp",
       "headers": {
         "Authorization": "Bearer ${ANYSEARCH_API_KEY}",
@@ -120,6 +152,10 @@ For agents that support the Streamable HTTP transport (MCP spec 2025-03-26+):
   }
 }
 ```
+
+> The legacy Go version does not support Streamable HTTP natively. Use SSE or stdio via proxy instead.
+
+</details>
 
 **Claude Desktop** (2025.6+, `claude_desktop_config.json`):
 
@@ -292,7 +328,7 @@ Then configure your agent:
 
 | Agent | Transport | Config Location | Needs Proxy? | Proxy Tool |
 |-------|-----------|----------------|-------------|------------|
-| OpenCode | Streamable HTTP | `opencode.json` | No | — |
+| OpenCode (v1.x+) | Streamable HTTP | `~/.config/opencode/opencode.json` or project `opencode.json` | No | — |
 | Claude Desktop (2025.6+) | Streamable HTTP | `claude_desktop_config.json` | No | — |
 | Claude Desktop (legacy) | stdio | `claude_desktop_config.json` | Yes | `mcp-remote` |
 | Cursor | SSE | `.cursor/mcp.json` | Yes | `supergateway` |
