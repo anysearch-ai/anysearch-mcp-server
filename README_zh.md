@@ -127,16 +127,14 @@ API key 是可选项。若客户端官方文档说明了自定义 Header 的环�
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    "servers": {
-      "anysearch": {
-        "type": "remote",
-        "url": "https://api.anysearch.com/mcp",
-        "enabled": true,
-        "oauth": false,
-        "headers": {
-          "Authorization": "Bearer {env:ANYSEARCH_API_KEY}",
-          "X-Anysearch-Client": "mcp/1.0.0"
-        }
+    "anysearch": {
+      "type": "remote",
+      "url": "https://api.anysearch.com/mcp",
+      "enabled": true,
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:ANYSEARCH_API_KEY}",
+        "X-Anysearch-Client": "mcp/1.0.0"
       }
     }
   }
@@ -145,11 +143,7 @@ API key 是可选项。若客户端官方文档说明了自定义 Header 的环�
 
 OpenCode 使用 `{env:NAME}` 语法引用环境变量。`"oauth": false` 可避免 API key 鉴权服务触发不必要的 OAuth 探测。
 
-保存后运行 `opencode mcp list`，确认 `anysearch` 显示为 `connected`。也可以直接运行：
-
-```bash
-opencode mcp add anysearch --global --url https://api.anysearch.com/mcp --header 'Authorization=Bearer {env:ANYSEARCH_API_KEY}' --header 'X-Anysearch-Client=mcp/1.0.0'
-```
+保存后重启 OpenCode，运行 `opencode mcp list`，确认 `anysearch` 显示为 `connected`。
 
 ### Claude Code
 
