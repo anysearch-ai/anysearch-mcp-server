@@ -2,23 +2,27 @@
 
 > [English](./README.md) | 简体中文
 
-统一实时搜索 MCP 服务器，支持通用网页搜索、垂直领域搜索、并行批量搜索和整页 URL 内容提取。
+统一实时搜索 MCP 服务器，支持通用网页搜索、垂直领域搜索、并行批量搜索和页面正文提取（超长截断）。
+
+官方 MCP 安装文档：[https://www.anysearch.com/docs/mcp-install](https://www.anysearch.com/docs/mcp-install)
 
 ## 功能
 
 - **通用网页搜索** —— 开放式自然语言查询
 - **垂直领域搜索** —— 支持金融、学术、安全、法律、代码等领域的结构化查询
 - **并行批量搜索** —— 在一次调用中执行多个独立查询
-- **URL 内容提取** —— 获取并将完整页面内容提取为 Markdown
-- **匿名访问** —— 无需 API key 即可使用（速率限制较低）
+- **URL 内容提取** —— 获取页面正文并提取为 Markdown（超长内容截断）
+- **匿名访问** —— 无需 API key 即可使用（按 IP 限流，计入每日免费额度）
 
 ## API Key 配置
 
-API key **是可选项，但建议配置**。即使没有 key，所有功能仍可通过匿名访问使用，但速率限制较低。
+API key **是可选项，但建议配置**。即使没有 key，所有功能仍可通过匿名访问使用，但匿名访问按客户端 IP 限流，并计入每日免费额度。
+
+当前公开额度为：Free 1,000 次/天、最高 10 QPS；Pro 最高 20 QPS；学生/开发者计划 2,000 次/天、20 QPS (https://www.anysearch.com/pricing)。实际额度和并发限制以账户及服务端响应为准。
 
 ### 注册获取 API Key（推荐）
 
-智能体可以在**一次调用**中完成用户注册并获取 API key —— 无需验证码，无需手动注册。向用户索取一个**真实邮箱地址**：它将作为账户用户名。
+智能体可以在**一次调用**中完成用户注册并获取 API key —— 无需验证码，无需手动注册。向用户索取一个**真实邮箱地址**：它将作为账户用户名。注册前必须获得用户明确同意；不要要求用户把 key 粘贴到聊天中，也不要回显、打印或提交 key。
 
 ```bash
 curl -s -X POST "https://api.anysearch.com/v1/auth/email/register" \
@@ -41,7 +45,7 @@ curl -s -X POST "https://api.anysearch.com/v1/auth/email/register" \
       "key": "as_sk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       "key_prefix": "as_sk_xxxxxx...",
       "name": "default",
-      "rate_limit": 100,
+      "rate_limit": 20,
       "quota_limit": 0,
       "expires_at": null,
       "created_at": "2026-06-23T10:23:00Z"
@@ -50,22 +54,25 @@ curl -s -X POST "https://api.anysearch.com/v1/auth/email/register" \
 }
 ```
 
-`rate_limit` 等额度字段以实际响应为准，不要把示例值视为固定套餐。
+`rate_limit` 等额度字段以实际响应为准（实测默认值为 20），不要把示例值视为固定套餐。
 
-成功后，智能体**必须**：
+成功后，智能体应当：
 
-1. 将 `data.api_key.key` 写入 MCP 服务器配置，作为 `Authorization: Bearer <key>` 的值（和/或设置 `ANYSEARCH_API_KEY`）—— 它只显示一次（之后也可从控制台重新获取）。
-2. 告知用户其用户名（= 邮箱）和 `login_url`。
+1. 告知用户其用户名（= 邮箱）和 `login_url`。
+2. 在获得用户确认后，将 `data.api_key.key` 写入私有 MCP 配置或环境变量 `ANYSEARCH_API_KEY`，作为 `Authorization: Bearer <key>` 的值。它只显示一次（之后也可从控制台重新获取）。
+3. 不要回显、打印、提交 key，也不要将 key 写入项目级共享配置或聊天记录。
 
-错误响应可能使用 HTTP 状态码、应用级 `code` 或 `message`；不要假设所有错误的 `code` 都是 `-1`：
+错误响应可能使用 HTTP 状态码、应用级 `code` 或 `message`，也可能在 HTTP 200 下返回非零 `code`；不要假设所有错误的 `code` 都是 `-1`，也不要只看 HTTP 状态：
 
 | 状态 / code / message | 处理方式 |
 | --------------------- | -------- |
-| `Invalid email address.` | 请用户重新输入邮箱 |
-| HTTP `409` 或 `email_already_registered` | 邮箱已被注册 —— 告知用户在 `login_url` 登录；**不要**重试 |
-| `code: 42901`、`rate_limited` 或包含 `Rate limited` | 优先读取 `Retry-After`、响应数据或 message 中的重试时间；未提供时间时停止连续请求，稍后再试或先使用匿名访问 |
+| `invalid_email`（HTTP `200`，`code: 40001`） | 请用户重新输入邮箱 |
+| HTTP `409`（实测 body 为空）或 `email_already_registered` | 邮箱已被注册 —— 告知用户在 `login_url` 登录；**不要**重试 |
+| `code: 42901`、`rate_limited` 或包含 `Rate limited` | 优先读取 `Retry-After`、`data.retry_after_seconds` 或 message 中的重试时间；未提供时间时停止连续请求，稍后再试或先使用匿名访问 |
 | 以 `Key creation failed.` 开头 | 账户已创建，但 key 创建失败 —— 从 message 中提取邮箱和 URL（`"Key creation failed. Your account <email> was created; sign in at <url>."`），告知用户在该地址登录并手动创建 key |
 | `Internal server error.` | 稍后重试，或回退到匿名访问 |
+
+> 实测行为：非法邮箱返回 HTTP 200 + `code: 40001` + `message: "invalid_email"`；连续注册触发限流返回 HTTP 200 + `code: 42901` + `data.retry_after_seconds`；冷却后重复注册返回 HTTP 409 且 body 为空。
 
 > 该邮箱**必须真实且可接收邮件**。
 
@@ -75,21 +82,24 @@ curl -s -X POST "https://api.anysearch.com/v1/auth/email/register" \
 
 ### Key 优先级
 
+远程 MCP 端点只支持以下两种方式：
+
 | 优先级 | 来源 |
 | -------- | ---- |
-| 1（最高） | `--api_key` CLI 标志 / `Authorization` Header |
-| 2 | 环境变量 `ANYSEARCH_API_KEY` |
-| 3 | `.env` 文件（`ANYSEARCH_API_KEY=<key>`） |
-| 4 | 匿名访问（速率限制较低） |
+| 1（最高） | `Authorization: Bearer <key>` 请求头（key 可通过环境变量 `ANYSEARCH_API_KEY` 由客户端注入） |
+| 2 | 匿名访问（按 IP 限流，计入每日免费额度） |
+
+> `--api_key` CLI 标志和 `.env` 文件读取仅适用于本地 CLI/SDK，不适用于托管 MCP 端点。
 
 ### Key 行为
 
 | 场景 | 行为 |
 | ---- | ---- |
-| 无 key | 使用匿名访问（速率限制较低） |
-| 有 key | 通过 `Authorization: Bearer <key>` Header 发送，享有更高的速率限制 |
-| Key 额度耗尽，返回自动注册的 key | 智能体应请求用户确认，然后持久化保存新 key |
-| Key 额度耗尽，未返回新 key | 告知用户，并建议配置新 API key |
+| 无 key | 匿名访问；按客户端 IP 限流，计入每日免费额度 |
+| 有 key | 通过 `Authorization: Bearer <key>` 请求头发送，使用 key 的付费额度并享有更高并发 |
+| key 无效、禁用或过期 | 返回 HTTP `401` 或 `403`，**不会**静默回退到匿名访问 |
+| 额度耗尽 | 返回 HTTP `402` |
+| 触发限流 | 返回 HTTP `429`，按 `Retry-After` 或响应体中的重试时间等待 |
 
 ## MCP 传输
 
@@ -99,7 +109,9 @@ curl -s -X POST "https://api.anysearch.com/v1/auth/email/register" \
 https://api.anysearch.com/mcp
 ```
 
-该端点原生使用 **Streamable HTTP**。当前版本的 OpenCode、Claude Code、Cursor、VS Code、Cline、OpenAI Codex、Google Antigravity、DeepSeek Harness、Hermes Agent 和 OMP 均可直接连接，无需 SSE 或 stdio 代理。以下配置均依据各客户端当前官方文档整理。
+该端点原生使用 **Streamable HTTP**。当前版本的 OpenCode、Claude Code、Cursor、VS Code、Cline、OpenAI Codex、Google Antigravity、DeepSeek Harness、Hermes Agent 和 OMP 均可直接连接，无需 SSE 或 stdio 代理。官方 MCP 文档见 [AnySearch MCP Server Setup](https://www.anysearch.com/docs/mcp-install)。
+
+以下配置依据各客户端当前官方文档整理。请使用支持远程 HTTP 的客户端版本；配置位置和环境变量语法可能随客户端版本变化，以客户端官方文档为准。
 
 ## 安装
 
@@ -115,14 +127,16 @@ API key 是可选项。若客户端官方文档说明了自定义 Header 的环�
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    "anysearch": {
-      "type": "remote",
-      "url": "https://api.anysearch.com/mcp",
-      "enabled": true,
-      "oauth": false,
-      "headers": {
-        "Authorization": "Bearer {env:ANYSEARCH_API_KEY}",
-        "X-Anysearch-Client": "mcp/1.0.0"
+    "servers": {
+      "anysearch": {
+        "type": "remote",
+        "url": "https://api.anysearch.com/mcp",
+        "enabled": true,
+        "oauth": false,
+        "headers": {
+          "Authorization": "Bearer {env:ANYSEARCH_API_KEY}",
+          "X-Anysearch-Client": "mcp/1.0.0"
+        }
       }
     }
   }
@@ -131,7 +145,11 @@ API key 是可选项。若客户端官方文档说明了自定义 Header 的环�
 
 OpenCode 使用 `{env:NAME}` 语法引用环境变量。`"oauth": false` 可避免 API key 鉴权服务触发不必要的 OAuth 探测。
 
-保存后运行 `opencode mcp list`，确认 `anysearch` 显示为 `connected`。
+保存后运行 `opencode mcp list`，确认 `anysearch` 显示为 `connected`。也可以直接运行：
+
+```bash
+opencode mcp add anysearch --global --url https://api.anysearch.com/mcp --header 'Authorization=Bearer {env:ANYSEARCH_API_KEY}' --header 'X-Anysearch-Client=mcp/1.0.0'
+```
 
 ### Claude Code
 
@@ -140,10 +158,12 @@ OpenCode 使用 `{env:NAME}` 语法引用环境变量。`"oauth": false` 可避�
 如需仅供当前用户使用、并在本机所有项目中生效，运行：
 
 ```bash
-claude mcp add --transport http anysearch https://api.anysearch.com/mcp --scope user --header 'Authorization: Bearer ${ANYSEARCH_API_KEY}' --header 'X-Anysearch-Client: mcp/1.0.0'
+claude mcp add --transport http anysearch https://api.anysearch.com/mcp --scope user --header "Authorization: Bearer <your_api_key>" --header "X-Anysearch-Client: mcp/1.0.0"
 ```
 
-`user` scope 会将服务写入 `~/.claude.json`，并在本机所有项目中提供。单引号会保留变量引用，避免把明文 key 写进配置；启动 Claude Code 前需设置 `ANYSEARCH_API_KEY`。匿名访问时，省略 `Authorization` 对应的 `--header` 参数。
+`user` scope 会将服务写入 `~/.claude.json`，并在本机所有项目中提供。上面的 `--header` 会在执行时把 key 以明文写入配置；如果不想写入明文 key，请改用下面的项目级 `.mcp.json`，并在启动 Claude Code 前设置 `ANYSEARCH_API_KEY`。匿名访问时，省略 `Authorization` 对应的 `--header` 参数。
+
+> Windows PowerShell 中环境变量写法为 `$env:ANYSEARCH_API_KEY`，引号和变量展开行为与 bash 不同。CLI 命令中的 `${VAR}` 写法没有官方文档保证，建议用 `.mcp.json` 做变量展开。
 
 如需共享项目配置，在项目根目录创建 `.mcp.json`：
 
@@ -233,7 +253,7 @@ agent mcp list-tools anysearch
 
 如需匿名访问，删除 `Authorization` 项和整个 `inputs` 数组。
 
-运行 **MCP: List Servers**，选择 `anysearch` 后执行 **Start** 或 **Show Output** 验证连接。注意：`${input:...}` 适用于本机 VS Code，但需要交互输入的服务器不会转发到 Agent Host。需要跨 Agent Host/Copilot 工具复用时，改用工作区 `.mcp.json` 或用户 `~/.copilot/mcp-config.json`，并避免依赖交互式 input。
+运行 **MCP: List Servers**，选择 `anysearch` 后执行 **Start** 或 **Show Output** 验证连接。注意：`${input:...}` 适用于本机 VS Code；需要跨 Agent Host/Copilot 复用时，请改用工作区 `.mcp.json` 等非交互式配置，具体位置以 VS Code/Copilot 官方文档为准。
 
 ### Cline
 
@@ -258,9 +278,7 @@ agent mcp list-tools anysearch
 }
 ```
 
-Cline IDE 支持在 `url`、`headers` 和 `env` 中使用 `${env:VAR}`。运行 `cline mcp` 可打开 CLI 交互式向导，`cline config mcp --json` 可列出配置。官方网页仍写 `~/.cline/mcp.json`，但当前源码默认使用 `~/.cline/data/settings/cline_mcp_settings.json`；因此应通过 IDE 的 **Configure MCP Servers** 或 CLI 向导打开实际配置，不要依赖硬编码路径。
-
-以下五项已于 2026-08-27 对照一手配置文档核查。该结论表示客户端文档级兼容，不等同于已完成本机端到端联通认证。
+Cline IDE 支持在 `url`、`headers` 和 `env` 中使用 `${env:VAR}`。运行 `cline mcp` 可打开 CLI 交互式向导，`cline config mcp --json` 可列出配置。Cline 的配置文件位置可能随版本变化，建议通过 IDE 的 **Configure MCP Servers** 或 CLI 向导打开实际配置，不要依赖硬编码路径。
 
 ### OpenAI Codex
 
@@ -300,25 +318,28 @@ Antigravity 官方文档目前只展示 Header 明文值，未说明远程 Heade
 
 ### DeepSeek Harness
 
-官方资料：[DeepSeek Harness](https://www.deepseek.com/harness/en/) 和 [`@deepseek-ai/dsh-mcp-client`](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/mcp/mcp-client/README.md)。
+官方文档：[DeepSeek Harness 集成](https://anysearch.com/docs/open-source-integrations/deepseek)。
 
-DeepSeek Harness 通过官方 Cordis 插件配置 MCP，而不是使用独立的 `mcp.json`。将下面的 patch 合并到 `~/.dsh/profiles/web/cordis.patch.yml`（或 `$DSH_HOME` 下对应 profile）：
+推荐使用 AnySearch 专用插件（匿名额度可直接使用）：
 
-```yaml
-- insert:
-    - id: mcp-anysearch
-      name: "@deepseek-ai/dsh-mcp-client"
-      config:
-        serverName: anysearch
-        transport: streamable-http
-        url: "https://api.anysearch.com/mcp"
-        headers:
-          Authorization: !!js '`Bearer ${process.env.ANYSEARCH_API_KEY}`'
-          X-Anysearch-Client: "mcp/1.0.0"
-        failOnStartupError: true
+```bash
+npx -y @deepseek-ai/dsh plugin --profile web add @anysearch/anysearch-dsh
 ```
 
-设置 `ANYSEARCH_API_KEY` 后，先运行 `npx @deepseek-ai/dsh --profile web --dump-config`，确认 profile 已包含 `mcp-anysearch`，再运行 `npx @deepseek-ai/dsh web`。当前 MCP 插件只暴露 tools，尚不支持 MCP resources 和 prompts。DeepSeek Harness 仍处于 developer preview，升级时应重新核对上述插件文档。
+安装前确认 Node.js 22.19 或 24+、pnpm 11.7 可从 `PATH` 直接运行。安装后验证 profile：
+
+```bash
+npx -y @deepseek-ai/dsh --profile web --dump-config
+npx -y @deepseek-ai/dsh web
+```
+
+`--dump-config` 输出应包含 `searchProvider: anysearch`、`fetchProvider: anysearch` 和 `web-search-anysearch` 插件条目。插件会接管原生 `web_search`/`web_fetch`，并额外提供：
+
+- `anysearch_capabilities`
+- `anysearch_search`
+- `anysearch_batch_search`
+
+API key 可选；如需账户额度，将 `ANYSEARCH_API_KEY` 写入 `~/.dsh/.credentials.yaml`，不要把 key 放进会话、命令或仓库。旧的通用 cordis MCP 配置（`@deepseek-ai/dsh-mcp-client`）仍可用，但建议优先使用上述专用插件。DeepSeek Harness 仍处于 developer preview，升级时应重新核对官方插件文档。
 
 ### Hermes Agent
 
@@ -361,6 +382,20 @@ mcp_servers:
 
 OMP 会在配置值中展开 `${VAR}` 和 `${VAR:-default}`。设置 `ANYSEARCH_API_KEY` 后，在 OMP 中依次运行 `/mcp reload`、`/mcp test anysearch` 和 `/mcp list`。
 
+## 验证安装
+
+保存配置后，确认以下三点：
+
+1. 客户端中 `anysearch` 显示为已连接。
+2. 工具列表中包含 `search`、`get_sub_domains`、`batch_search` 和 `extract`。
+3. 发送下面的测试提示，确认客户端实际调用了 AnySearch：
+
+```text
+Use AnySearch to search for "Model Context Protocol official documentation". Return 3 results and keep the title and source URL for each result.
+```
+
+如果没有调用工具，先检查 MCP 连接状态和工具权限。
+
 ## 客户端速查表
 
 | 客户端 | 官方接入方式 | 配置位置 | 可直连 Streamable HTTP？ |
@@ -368,15 +403,17 @@ OMP 会在配置值中展开 `${VAR}` 和 `${VAR:-default}`。设置 `ANYSEARCH_
 | OpenCode | 远程 MCP 配置 | `~/.config/opencode/opencode.json` 或项目 `opencode.json` | 是 |
 | Claude Code | 远程 HTTP MCP | 用户级 `~/.claude.json` 或项目级 `.mcp.json` | 是 |
 | Cursor | 远程 MCP 配置 | `.cursor/mcp.json` 或 `~/.cursor/mcp.json` | 是 |
-| VS Code | HTTP MCP 配置 | 本机用户配置或 `.vscode/mcp.json`；Agent Host 使用 `.mcp.json` / `~/.copilot/mcp-config.json` | 是 |
+| VS Code | HTTP MCP 配置 | 本机用户配置或 `.vscode/mcp.json`；Agent Host 配置以 VS Code/Copilot 官方文档为准 | 是 |
 | Cline | 远程 Streamable HTTP | 通过 Cline IDE 或 CLI 向导打开实际配置 | 是 |
 | OpenAI Codex | 远程 MCP 配置 | `~/.codex/config.toml` 或受信任项目 `.codex/config.toml` | 是 |
 | Google Antigravity | 使用 `serverUrl` 的远程 MCP 配置 | `~/.gemini/config/mcp_config.json` 或工作区 `.agents/mcp_config.json` | 是 |
-| DeepSeek Harness | 官方 MCP client 插件 | `$DSH_HOME/profiles/<name>/cordis.patch.yml` | 是 |
+| DeepSeek Harness | 专用 `@anysearch/anysearch-dsh` 插件 | `$DSH_HOME` 下对应 profile；凭据在 `~/.dsh/.credentials.yaml` | 是 |
 | Hermes Agent | 远程 HTTP MCP | `$HERMES_HOME/config.yaml` | 是 |
 | OMP (Oh My Pi) | HTTP MCP 配置 | `.omp/mcp.json` 或 `~/.omp/agent/mcp.json` | 是 |
 
 ## 可用工具
+
+服务端当前提供 4 个工具：`search`、`get_sub_domains`、`batch_search` 和 `extract`。
 
 ### `search`
 
@@ -389,6 +426,8 @@ OMP 会在配置值中展开 `${VAR}` 和 `${VAR:-default}`。设置 `ANYSEARCH_
 | `sub_domain` | string | 否 | 子领域路由 key（例如 `finance.us_stock`）。必须来自 `get_sub_domains` 输出 |
 | `sub_domain_params` | object | 否 | 来自 `get_sub_domains` params 列的结构化参数。**绝不要**臆造参数值 |
 | `max_results` | integer | 否 | 1–10，默认为 10 |
+
+不传 `domain` 的通用搜索可以直接调用，无需先调用 `get_sub_domains`；一旦要传 `domain`，必须先调用 `get_sub_domains` 获取合法的 `sub_domain` 和参数定义。
 
 ### `get_sub_domains`
 
@@ -411,8 +450,46 @@ OMP 会在配置值中展开 `${VAR}` 和 `${VAR:-default}`。设置 `ANYSEARCH_
 
 ### `extract`
 
-从 URL 获取完整页面内容并以 Markdown 返回。内容超过 50,000 个字符时会被截断。仅支持 HTML 页面。
+从 URL 获取页面正文并以 Markdown 返回。支持 HTML/XHTML、纯文本、JSON 和 Markdown；不支持 PDF、DOC/DOCX、图片、音视频、压缩包等二进制格式。HTML/纯文本内容超过 50,000 个字符时会被截断；超大 JSON/Markdown 会返回错误。
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
 | `url` | string | 是 | 目标 URL（`http://` 或 `https://`） |
+
+## 调用示例
+
+`search`：
+
+```json
+{
+  "query": "Model Context Protocol official documentation",
+  "max_results": 3
+}
+```
+
+`get_sub_domains`：
+
+```json
+{
+  "domains": ["finance", "academic"]
+}
+```
+
+`batch_search`：
+
+```json
+{
+  "queries": [
+    { "query": "MCP official getting started guide", "max_results": 3 },
+    { "query": "Cursor MCP configuration documentation", "max_results": 3 }
+  ]
+}
+```
+
+`extract`：
+
+```json
+{
+  "url": "https://example.com"
+}
+```
