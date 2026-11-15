@@ -2,7 +2,7 @@
 
 > [English](./README.md) | 简体中文
 
-统一实时搜索 MCP 服务器，支持通用网页搜索、垂直领域搜索、并行批量搜索和页面正文提取（超长截断）。
+统一实时搜索 MCP 服务器，支持通用网页搜索、垂直领域搜索、并行批量搜索和页面正文提取。
 
 官方 MCP 安装文档：[https://www.anysearch.com/docs/mcp-install](https://www.anysearch.com/docs/mcp-install)
 
@@ -11,7 +11,7 @@
 - **通用网页搜索** —— 开放式自然语言查询
 - **垂直领域搜索** —— 支持金融、学术、安全、法律、代码等领域的结构化查询
 - **并行批量搜索** —— 在一次调用中执行多个独立查询
-- **URL 内容提取** —— 获取页面正文并提取为 Markdown（超长内容截断）
+- **URL 内容提取** —— 获取页面正文并提取为 Markdown
 - **匿名访问** —— 无需 API key 即可使用（按 IP 限流，计入每日免费额度）
 
 ## API Key 配置
@@ -54,7 +54,7 @@ curl -s -X POST "https://api.anysearch.com/v1/auth/email/register" \
 }
 ```
 
-`rate_limit` 等额度字段以实际响应为准（实测默认值为 20），不要把示例值视为固定套餐。
+`rate_limit` 等额度字段以实际响应为准，不要把示例值视为固定套餐。
 
 成功后，智能体应当：
 
@@ -64,15 +64,13 @@ curl -s -X POST "https://api.anysearch.com/v1/auth/email/register" \
 
 错误响应可能使用 HTTP 状态码、应用级 `code` 或 `message`，也可能在 HTTP 200 下返回非零 `code`；不要假设所有错误的 `code` 都是 `-1`，也不要只看 HTTP 状态：
 
-| 状态 / code / message | 处理方式 |
-| --------------------- | -------- |
-| `invalid_email`（HTTP `200`，`code: 40001`） | 请用户重新输入邮箱 |
-| HTTP `409`（实测 body 为空）或 `email_already_registered` | 邮箱已被注册 —— 告知用户在 `login_url` 登录；**不要**重试 |
-| `code: 42901`、`rate_limited` 或包含 `Rate limited` | 优先读取 `Retry-After`、`data.retry_after_seconds` 或 message 中的重试时间；未提供时间时停止连续请求，稍后再试或先使用匿名访问 |
-| 以 `Key creation failed.` 开头 | 账户已创建，但 key 创建失败 —— 从 message 中提取邮箱和 URL（`"Key creation failed. Your account <email> was created; sign in at <url>."`），告知用户在该地址登录并手动创建 key |
-| `Internal server error.` | 稍后重试，或回退到匿名访问 |
-
-> 实测行为：非法邮箱返回 HTTP 200 + `code: 40001` + `message: "invalid_email"`；连续注册触发限流返回 HTTP 200 + `code: 42901` + `data.retry_after_seconds`；冷却后重复注册返回 HTTP 409 且 body 为空。
+| message 特征 | 处理方式 |
+| ---- | ---- |
+| `"invalid_email"` | 请用户重新输入邮箱 |
+| `"email_already_registered"` | 邮箱已被注册 —— 告知用户在 `login_url` 登录；**不要**重试 |
+| `"Rate limited"` | 优先读取 `Retry-After`、`data.retry_after_seconds` 或 message 中的重试时间；未提供时间时停止连续请求，稍后再试或先使用匿名访问 |
+| `"Key creation failed."` | 账户已创建，但 key 创建失败 —— 从 message 中提取邮箱和 URL（`"Key creation failed. Your account <email> was created; sign in at <url>."`），告知用户在该地址登录并手动创建 key |
+| `"Internal server error."` | 稍后重试，或回退到匿名访问 |
 
 > 该邮箱**必须真实且可接收邮件**。
 

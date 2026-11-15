@@ -2,7 +2,7 @@
 
 > English | [简体中文](./README_zh.md)
 
-Unified real-time search MCP server supporting general web search, vertical domain search, parallel batch search, and page body extraction (truncated when too long).
+Unified real-time search MCP server supporting general web search, vertical domain search, parallel batch search, and page body extraction.
 
 Official MCP setup docs: [https://www.anysearch.com/docs/mcp-install](https://www.anysearch.com/docs/mcp-install)
 
@@ -11,7 +11,7 @@ Official MCP setup docs: [https://www.anysearch.com/docs/mcp-install](https://ww
 - **General Web Search** — open-ended natural language queries
 - **Vertical Domain Search** — structured queries across finance, academic, security, legal, code, and more
 - **Parallel Batch Search** — execute multiple independent queries in one call
-- **URL Content Extraction** — fetch the page body and extract it as Markdown (truncated when too long)
+- **URL Content Extraction** — fetch the page body and extract it as Markdown
 - **Anonymous Access** — works without an API key (rate-limited per client IP and counted against the daily free quota)
 
 ## API Key Configuration
@@ -54,7 +54,7 @@ Success response (`code: 0`) returns the account info and a one-time plaintext A
 }
 ```
 
-Quota fields such as `rate_limit` are account-specific response values (the observed default is 20); do not treat the example as a fixed plan.
+Quota fields such as `rate_limit` are account-specific response values; do not treat the example as a fixed plan.
 
 On success the agent should:
 
@@ -64,15 +64,13 @@ On success the agent should:
 
 Errors can be expressed through the HTTP status, application-level `code`, or `message`, and may return a non-zero `code` with HTTP 200; do not assume every error uses `code: -1`, and do not rely on HTTP status alone:
 
-| status / code / message | what to do |
-| ----------------------- | ---------- |
-| `invalid_email` (HTTP `200`, `code: 40001`) | ask the user to re-enter the email |
-| HTTP `409` (observed empty body) or `email_already_registered` | email is taken — tell the user to sign in at `login_url`; do **not** retry |
-| `code: 42901`, `rate_limited`, or contains `Rate limited` | prefer a retry delay from `Retry-After`, `data.retry_after_seconds`, or the message; if none is provided, stop repeated requests and retry later or use anonymous access |
-| starts with `Key creation failed.` | account created but key failed — extract the email and URL from the message (`"Key creation failed. Your account <email> was created; sign in at <url>."`) and tell the user to sign in there to create a key manually |
-| `Internal server error.` | retry later or fall back to anonymous |
-
-> Observed behavior: an invalid email returns HTTP 200 + `code: 40001` + `message: "invalid_email"`; rapid repeated registration returns HTTP 200 + `code: 42901` + `data.retry_after_seconds`; duplicate registration after the cooldown returns HTTP 409 with an empty body.
+| message pattern | what to do |
+| ---- | ---- |
+| `"invalid_email"` | ask the user to re-enter the email |
+| `"email_already_registered"` | email is taken — tell the user to sign in at `login_url`; do **not** retry |
+| `"Rate limited"` | prefer a retry delay from `Retry-After`, `data.retry_after_seconds`, or the message; if none is provided, stop repeated requests and retry later or use anonymous access |
+| `"Key creation failed."` | account created but key failed — extract the email and URL from the message (`"Key creation failed. Your account <email> was created; sign in at <url>."`) and tell the user to sign in there to create a key manually |
+| `"Internal server error."` | retry later or fall back to anonymous |
 
 > The email **must be real and reachable**.
 
