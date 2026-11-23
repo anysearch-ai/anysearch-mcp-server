@@ -6,6 +6,10 @@
 
 官方 MCP 安装文档：[https://www.anysearch.com/docs/mcp-install](https://www.anysearch.com/docs/mcp-install)
 
+如果想使用AnySearch的skill服务，详情可访问[AnySearch skill仓库](https://github.com/anysearch-ai/anysearch-skill)
+
+如果想使用AnySearch的Rest API服务，详情可访问[AnySearch Rest API官网文档](https://www.anysearch.com/docs/api-endpoints)
+
 ## 功能
 
 - **通用网页搜索** —— 开放式自然语言查询
@@ -18,11 +22,11 @@
 
 API key **是可选项，但建议配置**。即使没有 key，所有功能仍可通过匿名访问使用，但匿名访问按客户端 IP 限流，并计入每日免费额度。
 
-当前公开额度为：Free 1,000 次/天、最高 10 QPS；Pro 最高 20 QPS；学生/开发者计划 2,000 次/天、20 QPS (https://www.anysearch.com/pricing)。实际额度和并发限制以账户及服务端响应为准。
+当前公开额度为：Free 1,000 次/天、最高 10 QPS；Pro 最高 20 QPS；学生/开发者计划 2,000 次/天、20 QPS （https://www.anysearch.com/pricing）。实际额度和并发限制以账户及服务端响应为准。
 
 ### 注册获取 API Key（推荐）
 
-智能体可以在**一次调用**中完成用户注册并获取 API key —— 无需验证码、无需手动注册。向用户索取一个**真实邮箱地址**：它将作为账户用户名。注册前必须获得用户明确同意；不要要求用户把 key 粘贴到聊天中，也不要回显、打印或提交 key。
+智能体可以在**一次调用**中完成用户注册并获取 API key —— 无需验证码，无需手动注册。向用户索取一个**真实邮箱地址**：它将作为账户用户名。注册前必须获得用户明确同意；不要要求用户把 key 粘贴到聊天中，也不要回显、打印或提交 key。
 
 ```bash
 curl -s -X POST "https://api.anysearch.com/v1/auth/email/register" \
@@ -64,13 +68,13 @@ curl -s -X POST "https://api.anysearch.com/v1/auth/email/register" \
 
 错误响应可能使用 HTTP 状态码、应用级 `code` 或 `message`，也可能在 HTTP 200 下返回非零 `code`；不要假设所有错误的 `code` 都是 `-1`，也不要只看 HTTP 状态：
 
-| message 特征 | 处理方式 |
-| ---- | ---- |
-| `"invalid_email"` | 请用户重新输入邮箱 |
-| `"email_already_registered"` | 邮箱已被注册 —— 告知用户在 `login_url` 登录；**不要**重试 |
-| `"Rate limited"` | 优先读取 `Retry-After`、`data.retry_after_seconds` 或 message 中的重试时间；未提供时间时停止连续请求，稍后再试或先使用匿名访问 |
-| `"Key creation failed."` | 账户已创建，但 key 创建失败 —— 从 message 中提取邮箱和 URL（`"Key creation failed. Your account <email> was created; sign in at <url>."`），告知用户在该地址登录并手动创建 key |
-| `"Internal server error."` | 稍后重试，或回退到匿名访问 |
+| message 特征                 | 处理方式                                                     |
+| ---------------------------- | ------------------------------------------------------------ |
+| `"invalid_email"`            | 请用户重新输入邮箱                                           |
+| `"email_already_registered"` | 邮箱已被注册 —— 告知用户在 `login_url` 登录；**不要**重试    |
+| `"Rate limited"`             | 优先读取 `Retry-After`、`data.retry_after_seconds` 或 message 中的重试时间；未提供时间时停止连续请求，稍后再试或先使用匿名访问 |
+| `"Key creation failed."`     | 账户已创建，但 key 创建失败 —— 从 message 中提取邮箱和 URL（`"Key creation failed. Your account <email> was created; sign in at <url>."`），告知用户在该地址登录并手动创建 key |
+| `"Internal server error."`   | 稍后重试，或回退到匿名访问                                   |
 
 > 该邮箱**必须真实且可接收邮件**。
 
@@ -82,22 +86,22 @@ curl -s -X POST "https://api.anysearch.com/v1/auth/email/register" \
 
 远程 MCP 端点只支持以下两种方式：
 
-| 优先级 | 来源 |
-| -------- | ---- |
+| 优先级    | 来源                                                         |
+| --------- | ------------------------------------------------------------ |
 | 1（最高） | `Authorization: Bearer <key>` 请求头（key 可通过环境变量 `ANYSEARCH_API_KEY` 由客户端注入） |
-| 2 | 匿名访问（按 IP 限流，计入每日免费额度） |
+| 2         | 匿名访问（按 IP 限流，计入每日免费额度）                     |
 
 > `--api_key` CLI 标志和 `.env` 文件读取仅适用于本地 CLI/SDK，不适用于托管 MCP 端点。
 
 ### Key 行为
 
-| 场景 | 行为 |
-| ---- | ---- |
-| 无 key | 匿名访问；按客户端 IP 限流，计入每日免费额度 |
-| 有 key | 通过 `Authorization: Bearer <key>` 请求头发送，使用 key 的付费额度并享有更高并发 |
-| key 无效、禁用或过期 | 返回 HTTP `401` 或 `403`，**不会**静默回退到匿名访问 |
-| 额度耗尽 | 返回 HTTP `402` |
-| 触发限流 | 返回 HTTP `429`，按 `Retry-After` 或响应体中的重试时间等待 |
+| 场景                 | 行为                                                         |
+| -------------------- | ------------------------------------------------------------ |
+| 无 key               | 匿名访问；按客户端 IP 限流，计入每日免费额度                 |
+| 有 key               | 通过 `Authorization: Bearer <key>` 请求头发送，使用 key 的付费额度并享有更高并发 |
+| key 无效、禁用或过期 | 返回 HTTP `401` 或 `403`，**不会**静默回退到匿名访问         |
+| 额度耗尽             | 返回 HTTP `402`                                              |
+| 触发限流             | 返回 HTTP `429`，按 `Retry-After` 或响应体中的重试时间等待   |
 
 ## MCP 传输
 
@@ -374,50 +378,17 @@ mcp_servers:
 
 OMP 会在配置值中展开 `${VAR}` 和 `${VAR:-default}`。设置 `ANYSEARCH_API_KEY` 后，在 OMP 中依次运行 `/mcp reload`、`/mcp test anysearch` 和 `/mcp list`。
 
-## 验证安装
-
-保存配置后，确认以下三点：
-
-1. 客户端中 `anysearch` 显示为已连接。
-2. 工具列表中包含 `search`、`get_sub_domains`、`batch_search` 和 `extract`。
-3. 发送下面的测试提示，确认客户端实际调用了 AnySearch：
-
-```text
-Use AnySearch to search for "Model Context Protocol official documentation". Return 3 results and keep the title and source URL for each result.
-```
-
-如果没有调用工具，先检查 MCP 连接状态和工具权限。
-
-## 客户端速查表
-
-| 客户端 | 官方接入方式 | 配置位置 | 可直连 Streamable HTTP？ |
-| ------ | ------------ | -------- | ------------------------ |
-| OpenCode | 远程 MCP 配置 | `~/.config/opencode/opencode.json` 或项目 `opencode.json` | 是 |
-| Claude Code | 远程 HTTP MCP | 用户级 `~/.claude.json` 或项目级 `.mcp.json` | 是 |
-| Cursor | 远程 MCP 配置 | `.cursor/mcp.json` 或 `~/.cursor/mcp.json` | 是 |
-| VS Code | HTTP MCP 配置 | 本机用户配置或 `.vscode/mcp.json`；Agent Host 配置以 VS Code/Copilot 官方文档为准 | 是 |
-| Cline | 远程 Streamable HTTP | 通过 Cline IDE 或 CLI 向导打开实际配置 | 是 |
-| OpenAI Codex | 远程 MCP 配置 | `~/.codex/config.toml` 或受信任项目 `.codex/config.toml` | 是 |
-| Google Antigravity | 使用 `serverUrl` 的远程 MCP 配置 | `~/.gemini/config/mcp_config.json` 或工作区 `.agents/mcp_config.json` | 是 |
-| DeepSeek Harness | 专用 `@anysearch/anysearch-dsh` 插件 | `$DSH_HOME` 下对应 profile；凭据在 `~/.dsh/.credentials.yaml` | 是 |
-| Hermes Agent | 远程 HTTP MCP | `$HERMES_HOME/config.yaml` | 是 |
-| OMP (Oh My Pi) | HTTP MCP 配置 | `.omp/mcp.json` 或 `~/.omp/agent/mcp.json` | 是 |
-
-## 可用工具
-
-服务端当前提供 4 个工具：`search`、`get_sub_domains`、`batch_search` 和 `extract`。
-
 ### `search`
 
-执行通用或垂直领域搜索查询。
+执行通用或垂直领域搜索查询，普通查询可直接调用。
 
-| 参数 | 类型 | 必填 | 说明 |
-| ---- | ---- | ---- | ---- |
-| `query` | string | 是 | 自然语言搜索查询。每次调用只包含一个意图 |
-| `domain` | string | 否 | 垂直领域（例如 `finance`、`academic`、`security`）。必须来自 `get_sub_domains` 枚举 |
-| `sub_domain` | string | 否 | 子领域路由 key（例如 `finance.us_stock`）。必须来自 `get_sub_domains` 输出 |
-| `sub_domain_params` | object | 否 | 来自 `get_sub_domains` params 列的结构化参数。**绝不要**臆造参数值 |
-| `max_results` | integer | 否 | 1–10，默认为 10 |
+| 参数                | 类型    | 必填 | 说明                                                         |
+| ------------------- | ------- | ---- | ------------------------------------------------------------ |
+| `query`             | string  | 是   | 自然语言搜索查询。每次调用只包含一个意图                     |
+| `domain`            | string  | 否   | 垂直领域（例如 `finance`、`academic`、`security`）。必须来自 `get_sub_domains` 枚举 |
+| `sub_domain`        | string  | 否   | 子领域路由 key（例如 `finance.us_stock`）。必须来自 `get_sub_domains` 输出 |
+| `sub_domain_params` | object  | 否   | 来自 `get_sub_domains` params 列的结构化参数。**绝不要**臆造参数值 |
+| `max_results`       | integer | 否   | 1–10，默认为 10                                              |
 
 不传 `domain` 的通用搜索可以直接调用，无需先调用 `get_sub_domains`；一旦要传 `domain`，必须先调用 `get_sub_domains` 获取合法的 `sub_domain` 和参数定义。
 
@@ -425,9 +396,9 @@ Use AnySearch to search for "Model Context Protocol official documentation". Ret
 
 查询垂直领域目录。**使用 domain 进行任何搜索前都必须先调用** —— 返回有效的 sub_domains 及其参数 schema。
 
-| 参数 | 类型 | 必填 | 说明 |
-| ---- | ---- | ---- | ---- |
-| `domain` | string | 二选一 | 要查询的单个领域 |
+| 参数      | 类型     | 必填   | 说明                                          |
+| --------- | -------- | ------ | --------------------------------------------- |
+| `domain`  | string   | 二选一 | 要查询的单个领域                              |
 | `domains` | string[] | 二选一 | 批量查询最多 5 个领域（推荐 —— 覆盖范围更广） |
 
 返回 Markdown 表格：`sub_domain | description | params`
@@ -436,52 +407,227 @@ Use AnySearch to search for "Model Context Protocol official documentation". Ret
 
 并行执行 1–5 个独立搜索查询。单个查询失败不会阻塞其他查询。
 
-| 参数 | 类型 | 必填 | 说明 |
-| ---- | ---- | ---- | ---- |
-| `queries` | object[] | 是 | 1–5 个查询对象，每个对象的字段与 `search` 相同 |
+| 参数      | 类型     | 必填 | 说明                                           |
+| --------- | -------- | ---- | ---------------------------------------------- |
+| `queries` | object[] | 是   | 1–5 个查询对象，每个对象的字段与 `search` 相同 |
 
 ### `extract`
 
 从 URL 获取页面正文并以 Markdown 返回。支持 HTML/XHTML、纯文本、JSON 和 Markdown；不支持 PDF、DOC/DOCX、图片、音视频、压缩包等二进制格式。HTML/纯文本内容超过 50,000 个字符时会被截断；超大 JSON/Markdown 会返回错误。
 
-| 参数 | 类型 | 必填 | 说明 |
-| ---- | ---- | ---- | ---- |
-| `url` | string | 是 | 目标 URL（`http://` 或 `https://`） |
+| 参数  | 类型   | 必填 | 说明                                |
+| ----- | ------ | ---- | ----------------------------------- |
+| `url` | string | 是   | 目标 URL（`http://` 或 `https://`） |
 
-## 调用示例
+## 端到端示例（所有客户端通用）
 
-`search`：
+下面两个示例分别对应**垂类搜索**和**通用搜索**，两者都会用到 `batch_search` 和 `extract`；真实使用时按 query 的信息类型选一个即可。
 
-```json
-{
-  "query": "Model Context Protocol official documentation",
-  "max_results": 3
-}
+### 示例 1：垂类搜索（对比两个货币对）
+
+```text
+帮我对比美元兑人民币和欧元兑美元的当前汇率，并给出可引用的汇率数据来源。
 ```
 
-`get_sub_domains`：
+这条 query 有明确的垂直领域（外汇行情），流程是 3 步：`get_sub_domains` → `batch_search` → `extract`。
+
+**1. `get_sub_domains` —— 取 finance 的合法子领域与参数**
 
 ```json
-{
-  "domains": ["finance", "academic"]
-}
+{ "domains": ["finance"] }
 ```
 
-`batch_search`：
+接口返回 6 个子领域及各自参数 schema（完整说明较长，这里只列名称与用途）：
+
+| sub_domain            | 用途                                       |
+| --------------------- | ------------------------------------------ |
+| `finance.calendar`    | 财报、分红、IPO、经济数据日历              |
+| `finance.fundamental` | 财报、估值、分析师评级、股东结构、SEC 文件 |
+| `finance.macro`       | GDP、CPI、利率、货币供应等宏观指标         |
+| `finance.news`        | 财经新闻、公司公告、券商摘要               |
+| `finance.quote`       | 股票、外汇、加密、商品、指数、ETF 行情     |
+| `finance.screen`      | 按行业和国家筛选股票                       |
+
+`sub_domain` 和 `params` 的实际键名以本次返回为准。
+
+**2. `batch_search`（垂类）—— 两个 `finance.quote` 子查询并行取价**
 
 ```json
 {
   "queries": [
-    { "query": "MCP official getting started guide", "max_results": 3 },
-    { "query": "Cursor MCP configuration documentation", "max_results": 3 }
+    {
+      "query": "USD CNY spot rate",
+      "domain": "finance",
+      "sub_domain": "finance.quote",
+      "sub_domain_params": { "type": "forex", "symbol": "USDCNY" },
+      "max_results": 10
+    },
+    {
+      "query": "EUR USD spot rate",
+      "domain": "finance",
+      "sub_domain": "finance.quote",
+      "sub_domain_params": { "type": "forex", "symbol": "EURUSD" },
+      "max_results": 10
+    }
   ]
 }
 ```
 
-`extract`：
+````text
+## Query 1: USD CNY spot rate
+
+## Search Results (1 results, 453ms)
+
+### 1. USD/CNY Exchange Rate
+- **URL**: https://site.financialmodelingprep.com/?ref=quote-USDCNY
+- Pair: USD/CNY | Rate: 6.6772 | Change: +0.0107 | Change%: +0.16% | Open: 6.6660 | PrevClose: 6.6665 | DayHigh: 6.6794 | DayLow: 6.6623 | YearHigh: 7.1155 | YearLow: 6.6369 | Avg50: 6.6800 | Avg200: 6.7500
+
+```yaml
+request_id: 6d36ab15bf624488b336a4f1fc951571
+```
+
+---
+
+## Query 2: EUR USD spot rate
+
+## Search Results (1 results, 456ms)
+
+### 1. EUR/USD Exchange Rate
+- **URL**: https://site.financialmodelingprep.com/?ref=quote-EURUSD
+- Pair: EUR/USD | Rate: 1.0969 | Change: +0.0002 | Change%: +0.02% | Open: 1.0969 | PrevClose: 1.0967 | DayHigh: 1.1000 | DayLow: 1.0957 | YearHigh: 1.2083 | YearLow: 1.0953 | Avg50: 1.1200 | Avg200: 1.1500
+
+```yaml
+request_id: 6866d24cdfa84d56bd0605c2c3456cd8
+```
+````
+
+两个货币对互相独立，单条失败不影响另一条。
+
+**3. `extract` —— 取可引用的汇率来源正文**
+
+```json
+{ "url": "https://api.frankfurter.app/latest?from=USD&to=CNY" }
+```
+
+````text
+{"url":"https://api.frankfurter.app/latest?from=USD\u0026to=CNY","title":"","content":"{\"amount\":1.0,\"base\":\"USD\",\"date\":\"2026-11-20\",\"rates\":{\"CNY\":6.6777}}"}
+````
+
+`content` 里就是原始 JSON 字符串，可直接作为可引用的汇率来源。
+
+### 示例 2：通用搜索（MCP 官方文档）
+
+```text
+帮我查一下 Model Context Protocol 的官方文档和规范入口，并给出可引用的正文。
+```
+
+这条 query 没有垂直领域意图，直接走通用 `search`；需要并行比较多个来源时再用 `batch_search`，最后用 `extract` 取正文。
+
+**1. `search`（通用）**
+
+```json
+{ "query": "Model Context Protocol 官方文档", "max_results": 10 }
+```
+
+````text
+## Search Results (10 results, 237ms)
+
+### 1. Model Context Protocol Specification – Model Context Protocol （MCP）
+- **URL**: https://modelcontextprotocol.info/specification/
+- The authoritative sources are the official specification pages at modelcontextprotocol.io/specification/2026-07-28 and the release announcement The 2026-07-28 Specification. Understand tool definitions, results, and errors: follow a tool call and compare protocol revisions. The Model Context Protocol (MCP) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. Move a client across protocol eras: see the 2025-11-25 handshake and the 2026-07-28 stateless flow side by side, with runnable examples. Design tools a model can use: review tool descriptions, parameters, and error handling.
+
+### 2. Model Context Protocol 官方文档｜MCP 协议规范与服务器开发官网 - Model Context Protocol 官网是 MCP 协议的官方文档站，说明客户端与服务器架构、SDK 用法、调试工具与示例，适合为 AI 应用接入数据库、文件与业务系统的开发者。|一方导航网
+- **URL**: https://www.1fdh.com/sites/4810.html
+- [极速社区是专业的 IDC 与站长综合交流社区，提供服务器IDC评测、域名主机、SEO 优化、网站搭建、源码资源及运维技术分享，助力广大站长高效建站、稳定运营。](https://www.1fdh.com/sites/3546.html) Model Context Protocol（简称 MCP）是一套开放协议，用来把 AI 应用与外部系统连起来。modelcontextprotocol.io 是该协议的官方文档站，规格、SDK 与示例都从这里查。 ## 数据评估 本站一方导航网提供的Model Context Protocol 官方文档｜MCP 协议规范与服务器开发都来源于网络，不保证外部链接的准确性和完整性，同时，对于该外部链接的指向，不由一方导航网实际控制，在2026年11月3日 下午8:33收录时，该网页上的内容，都属于合规合法，后期网页的内容如出现违规，可以直接联系网站管理员进行删除，一方导航网不承担任何责任。
+
+### 3. 规范 – Model Context Protocol Specification
+- **URL**: https://model-context-protocol.github.io/specification/
+- ℹ️ 协议修订: 2024-11-05 Model Context Protocol (MCP) 是一个开放协议，能够在 LLM 应用程序和外部数据源及工具之间实现无缝集成。无论您是在构建 AI 驱动的 IDE、增强聊天界面，还是创建自定义 AI 工作流，MCP 都提供了一种标准... ℹ️ 协议修订: 2024-11-05 Model Context Protocol (MCP) 是一个开放协议，能够在 LLM 应用程序和外部数据源及工具之间实现无缝集成。无论您是在构建 AI 驱动的 IDE、增强聊天界面，还是创建自定义 AI 工作流，MCP 都提供了一种标准化的方式来连接 LLM 与所需的上下文。 本规范定义了权威的协议要求，基于 schema.ts 中的 TypeScript 模式。 有关实施指南和示例，请访问 model-context-protocol.mintlify.app。 本文件中的关键字 “MUST”、“MUST NOT”、“REQUIRED”、“SHALL”、“SH MCP 从 Language Server Protocol 中汲取了一些灵感，该协议标准化了如何在整个开发工具生态系统中添加编程语言支持。类似地，MCP 标准化了如何将额外的上下文和工具集成到 AI 应用程序的生态系统中。 ... Model Context Protocol 通过任意数据访问和代码执行路径提供强大的功能。随着这种能力的增强，所有实施者必须仔细解决重要的安全和信任问题。
+
+### 4. 规范 – MCP 中文站（Model Context Protocol 中文）
+- **URL**: https://mcpcn.com/specification/2026-07-28/
+- # 规范 [模型上下文协议](https://modelcontextprotocol.io)（Model Context Protocol，简称 MCP）是一项开放协议，可将 LLM 应用与外部数据源和工具无缝集成。无论你是在构建 AI 驱动的 IDE、增强聊天界面，还是创建自定义 AI 工作流，MCP 都提供了一种标准化方式，将 LLM 连接到它们所需的上下文。 本规范基于 [schema.ts](https://github.com/modelcontextprotocol/specification/blob/main/schema/2026-07-28/schema.ts) 中的 TypeScript schema，定义了权威的协议要求。 有关实现指南和示例，请访问 [modelcontextprotocol.io](https://modelcontextprotocol.io)。 本文档中的关键词 “MUST”、“MUST NOT”、“REQUIRED”、“SHALL”、“SHALL NOT”、“SHOULD”、“SHOULD NOT”、“RECOMMENDED”、“NOT RECOMMENDED”、“MAY” 和 “OPTIONAL”，仅当它们以这里所示的全大写形式出现时，才应按照 [BCP 14](https://datatracker.ietf.org/doc/html/bcp14) \[[RFC2119](https://datatracker.ietf.org/doc/html/rfc2119)] \[[RFC8174](https://datatracker.ietf.org/doc/html/rfc8174)] 中的定义解释。 ## 概述 MCP 为应用提供了一种标准化方式，用于： - 与语言模型共享上下文信息 - 向 AI 系统公开工具和能力 - 构建可组合的集成和工作流 该协议使用 [JSON-RPC](https://www.jsonrpc.org/) 2.0 消息，在以下各方之间建立通信： - **主机（Hosts）**：发起连接的 LLM 应用 - **客户端（Clients）**：主机应用中的连接器 - **服务器（Servers）**：提供上下文和能力的服务 MCP 在一定程度上借鉴了[语言服务器协议](https://microsoft.github.io/language-server-protocol/)。后者标准化了如何在整个开发工具生态中增加对编程语言的支持；类似地，MCP 标准化了如何将额外的上下文和工具集成到 AI 应用生态中。
+
+### 5. Model Context Protocol (MCP) specification
+- **URL**: https://ozeki-ai-gateway.com/p_9224-model-context-protocol-mcp-specification.html
+- # Model Context Protocol (MCP) specification Model Context Protocol (MCP) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. Whether you're building an AI-powered IDE, enhancing a chat interface, or creating custom AI workflows, MCP provides a standardized way to connect LLMs with the context they need. This specification defines the authoritative protocol requirements, based on the TypeScript schema in [schema.ts](https://github.com/modelcontextprotocol/specification/blob/main/schema/2025-11-25/schema.ts). For implementation guides and examples, visit [modelcontextprotocol.io](https://modelcontextprotocol.io). The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [BCP 14](https://datatracker.ietf.org/doc/html/bcp14) [RFC2119](https://datatracker.ietf.org/doc/html/rfc2119) [RFC8174](https://datatracker.ietf.org/doc/html/rfc8174) when, and only when, they appear in all capitals, as shown here. ## Overview MCP provides a standardized way for applications to: - Share contextual information with language models - Expose tools and capabilities to AI systems - Build composable integrations and workflows The protocol uses [JSON-RPC](https://www.jsonrpc.org/) 2.0 messages to establish communication between: - **Hosts**: LLM applications that initiate connections - **Clients**: Connectors within the host application - **Servers**: Services that provide context and capabilities MCP takes some inspiration from the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), which standardizes how to add support for programming languages across a whole ecosystem of development tools. In a similar way, MCP standardizes how to integrate additional context and tools into the ecosystem of AI applications. ## Security and Trust & Safety The Model Context Protocol enables powerful capabilities through arbitrary data access and code execution paths. With this power comes important security and trust considerations that all implementors must carefully address.
+
+### 6. MCP Docs – Model Context Protocol （MCP）
+- **URL**: https://modelcontextprotocol.info/docs/
+- Model Context Protocol (MCP) documentation organised by reader task: get started, develop, connect and run, track protocol versions, and look up reference material for the 2026-07-28 revision. Start from what you are trying to do: meet MCP for the first time, build something, connect and run it, or track versions and look things up. Each chapter below opens with the page to read first and lists the pages that follow. All of them describe the current protocol revision, 2026-07-28. Tracking revisions, or moving a client or server between them? See the Protocol and Versions chapter for the version rules and the revision matrix, and Migrating Between Protocol Eras for the step-by-step migration.
+
+### 7. 规范 – MCP 中文站（Model Context Protocol 中文）
+- **URL**: https://mcpcn.com/specification/2025-06-18/
+- 规范 # 规范 [模型上下文协议](https://modelcontextprotocol.io)（Model Context Protocol，简称 MCP）是一个开放协议，用于实现 LLM 应用与外部数据源和工具之间的无缝集成。无论您正在构建 AI 驱动的 IDE、增强聊天界面，还是创建自定义 AI 工作流，MCP 都提供了一种标准化的方式来连接 LLM 及其所需的上下文。 本规范基于 [schema.ts](https://github.com/modelcontextprotocol/specification/blob/main/schema/2025-06-18/schema.ts) 中的 TypeScript schema 定义了权威的协议要求。 有关实施指南和示例，请访问 [modelcontextprotocol.io](https://modelcontextprotocol.io)。 本文档中的关键词 “MUST”、“MUST NOT”、“REQUIRED”、“SHALL”、“SHALL NOT”、“SHOULD”、“SHOULD NOT”、“RECOMMENDED”、“NOT RECOMMENDED”、“MAY” 和 “OPTIONAL” 应按照 [BCP 14](https://datatracker.ietf.org/doc/html/bcp14) \[[RFC2119](https://datatracker.ietf.org/doc/html/rfc2119)] \[[RFC8174](https://datatracker.ietf.org/doc/html/rfc8174)] 中的描述进行解释，且仅当它们以全部大写形式出现时才适用，如此处所示。 ## 概述 MCP 为应用程序提供了一种标准化的方式来： - 与语言模型共享上下文信息 - 向 AI 系统暴露工具和能力 - 构建可组合的集成和工作流 该协议使用 [JSON-RPC](https://www.jsonrpc.org/) 2.0 消息在以下各方之间建立通信： - **主机（Hosts）**：发起连接的 LLM 应用程序 - **客户端（Clients）**：主机应用程序中的连接器 - **服务器（Servers）**：提供上下文和能力的服务 MCP 从[语言服务器协议](https://microsoft.github.io/language-server-protocol/)中获得了一些灵感，后者标准化了如何在整个开发生态系统的工具中添加对编程语言的支持。类似地，MCP 标准化了如何将额外的上下文和工具集成到 AI 应用程序的生态系统中。
+
+### 8. 基础协议 – Model Context Protocol Specification
+- **URL**: https://model-context-protocol.github.io/specification/basic/
+- ℹ️ 协议修订: 2024-11-05 ... 错误。结果可以遵循任何 JSON 对象结构，而错误必须至少包含错误代码和消息。 协议层 Model Context Protocol 由多个关键组件组成，这些组件协同工作：... ℹ️ 协议修订: 2024-11-05 所有 MCP 客户端和服务器之间的消息 必须 遵循 JSON-RPC 2.0 规范。该协议定义了三种基本类型的消息： 类型 描述 要求 Requests 用于启动操作的消息 必须包含唯一 ID 和方法名称 Responses 回复请求的消息 必须包含与请求相同的 ID Notifications 无需回复的单向消息 不得包含 ID Responses 进一步分为 成功结果 或 错误。结果可以遵循任何 JSON 对象结构，而错误必须至少包含错误代码和消息。 协议层 Model Context Protocol 由多个关键组件组成，这些组件协同工作：
+
+### 9. 规范 – MCP 中文站（Model Context Protocol 中文）
+- **URL**: https://mcpcn.com/specification/2025-11-25/
+- # 规范 [模型上下文协议](https://modelcontextprotocol.io)（Model Context Protocol，简称 MCP）是一个开放协议，用于实现 LLM 应用与外部数据源和工具之间的无缝集成。无论您正在构建 AI 驱动的 IDE、增强聊天界面，还是创建自定义 AI 工作流，MCP 都提供了一种标准化的方式来连接 LLM 及其所需的上下文。 本规范基于 [schema.ts](https://github.com/modelcontextprotocol/specification/blob/main/schema/2025-11-25/schema.ts) 中的 TypeScript schema 定义了权威的协议要求。 有关实施指南和示例，请访问 [modelcontextprotocol.io](https://modelcontextprotocol.io)。 本文档中的关键词 “MUST”、“MUST NOT”、“REQUIRED”、“SHALL”、“SHALL NOT”、“SHOULD”、“SHOULD NOT”、“RECOMMENDED”、“NOT RECOMMENDED”、“MAY” 和 “OPTIONAL” 应按照 [BCP 14](https://datatracker.ietf.org/doc/html/bcp14) \[[RFC2119](https://datatracker.ietf.org/doc/html/rfc2119)] \[[RFC8174](https://datatracker.ietf.org/doc/html/rfc8174)] 中的描述进行解释，且仅当它们以全部大写形式出现时才适用，如此处所示。 ## 概述 MCP 为应用程序提供了一种标准化的方式来： - 与语言模型共享上下文信息 - 向 AI 系统暴露工具和能力 - 构建可组合的集成和工作流 该协议使用 [JSON-RPC](https://www.jsonrpc.org/) 2.0 消息在以下各方之间建立通信： - **主机（Hosts）**：发起连接的 LLM 应用程序 - **客户端（Clients）**：主机应用程序中的连接器 - **服务器（Servers）**：提供上下文和能力的服务 MCP 从[语言服务器协议](https://microsoft.github.io/language-server-protocol/)中获得了一些灵感，后者标准化了如何在整个开发生态系统的工具中添加对编程语言的支持。类似地，MCP 标准化了如何将额外的上下文和工具集成到 AI 应用程序的生态系统中。
+
+### 10. 规范（草案） – MCP 中文站（Model Context Protocol 中文）
+- **URL**: https://mcpcn.com/specification/draft/
+- # 规范（草案） **协议版本**: 草案 [模型上下文协议](https://mcpcn.com)（MCP）是一个开放协议， 使 LLM 应用程序与外部数据源和工具之间能够无缝集成。无论您是在构建 AI 驱动的IDE、 增强聊天界面，还是创建自定义 AI 工作流，MCP 都提供了一种标准化的方式将 LLM 与所需的上下文连接起来。 本规范定义了权威的协议要求，基于 [schema.ts](https://github.com/modelcontextprotocol/specification/blob/main/schema/draft/schema.ts) 中的 TypeScript 架构。 有关实现指南和示例，请访问 [mcpcn.com](https://mcpcn.com)。 本文档中的关键词"必须"、“禁止”、“要求”、“应当”、“不应当”、“应该”、“不应该”、 “推荐”、“不推荐”、“可以"和"可选"应按照 [BCP 14](https://datatracker.ietf.org/doc/html/bcp14) \[[RFC2119](https://datatracker.ietf.org/doc/html/rfc2119)] \[[RFC8174](https://datatracker.ietf.org/doc/html/rfc8174)] 中的描述进行解释， 当且仅当它们以全大写形式出现时，如此处所示。 ## 概述 MCP 为应用程序提供了一种标准化的方式来： - 与语言模型共享上下文信息 - 向 AI 系统暴露工具和功能 - 构建可组合的集成和工作流 该协议使用 [JSON-RPC](https://www.jsonrpc.org/) 2.0 消息在以下组件之间建立通信： - **主机**：启动连接的 LLM 应用程序 - **客户端**：主机应用程序内的连接器 - **服务器**：提供上下文和功能的服务 MCP 从[语言服务器协议](https://microsoft.github.io/language-server-protocol/)获得了一些灵感， 该协议标准化了如何在整个开发工具生态系统中添加对编程语言的支持。类似地， MCP 标准化了如何将额外的上下文和工具集成到 AI 应用程序的生态系统中。
+
+```yaml
+request_id: 8ac5d90993534c42a7cf112f55f4a027
+```
+````
+
+**2. `batch_search`（通用）—— 并行比较文档与规范两个来源**
 
 ```json
 {
-  "url": "https://example.com"
+  "queries": [
+    { "query": "Model Context Protocol 官方文档", "max_results": 1 },
+    { "query": "Model Context Protocol specification 2026-07-28", "max_results": 1 }
+  ]
 }
 ```
+
+> 这里把 `max_results` 设为 `1` 只是为了示例更紧凑，不影响整个流程。
+
+````text
+## Query 1: Model Context Protocol 官方文档
+
+## Search Results (1 results, 545ms)
+
+### 1. Specification - Model Context Protocol
+- **URL**: https://modelcontextprotocol.io/specification/2026-07-28/index
+- Model Context Protocol (MCP) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. Whether you’re building an AI-powered IDE, enhancing a chat interface, or creating custom AI workflows, MCP provides a standardized way to connect LLMs with the context they need.This specification defines the authoritative protocol requirements, based on the TypeScript schema in schema.ts.For implementation guides and examples, visit modelcontextprotocol.io.The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “NOT RECOMMENDED”, “MAY”, and “OPTIONAL” in this document are to be interpreted as described in BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. Overview MCP provides a standardized way for applications to: Share contextual information with language models Expose tools and capabilities to AI systems Build composable integrations and workflows The protocol uses JSON-RPC 2.0 messages to establish communication between: Hosts: LLM applications that initiate connections Clients: Connectors within the host application Servers: Services that provide context and capabilities MCP takes some inspiration from the Language Server Protocol, which standardizes how to add support for programming languages across a whole ecosystem of development tools. In a similar way, MCP standardizes how to integrate additional context and tools into the ecosystem of AI applications. Servers offer any of the following features to clients: Resources: Context and data, for the user or the AI model to use Prompts: Templated messages and workflows for users Tools: Functions for the AI model to execute Clients may offer the following features to servers: Elicitation: Server requests for additional information from users Additional Utilities Configuration Progress tracking Cancellation Error reporting Extensions Beyond the core protocol, MCP defines optional extensions that add modular, specialized, or experimental functionality. Extensions are always opt-in and require explicit support from both client and server, negotiated through capabilities that clients declare on each request and servers declare in their server/discover result. Notable extensions include: Tasks: Asynchronous execution of long-running operations, with polling, mid-flight input, and durable handles Skills over MCP: Rich, structured instructions for agent workflows, discovered and consumed through MCP The Model Context Protocol enables powerful capabilities through arbitrary data access and code execution paths. With this power comes important security and trust considerations that all implementors must carefully address. Key Principles User Consent and Control Users must explicitly consent to and understand all data access and operations Users must retain control over what data is shared and what actions are taken Implementors should provide clear UIs for reviewing and authorizing activities Data Privacy Hosts must obtain explicit user consent before exposing user data to servers Hosts must not transmit resource data elsewhere without user consent User data should be protected with appropriate access controls Tool Safety Tools represent arbitrary code execution and must be treated with appropriate caution. In particular, descriptions of tool behavior such as annotations should be considered untrusted, unless obtained from a trusted server. Hosts must obtain explicit user consent before invoking any tool Users should understand what each tool does before authorizing its use Implementation Guidelines While MCP itself cannot enforce these security principles at the protocol level, implementors SHOULD: Build robust consent and authorization flows into their applications Provide clear documentation of security implications Implement appropriate access controls and data protections Follow security best practices in their integrations Consider privacy implications in their feature designs Learn More Explore the detailed specification for each protocol component:
+
+```yaml
+request_id: 3c9b78643657466194f804bdc1df6444
+```
+
+---
+
+## Query 2: Model Context Protocol specification 2026-07-28
+
+## Search Results (1 results, 594ms)
+
+### 1. MCP 2026-07-28 spec: stateless core, coming to Claude - Skip to main content
+- **URL**: https://claude.com/resources/articles/bringing-mcp-2026-07-28-to-claude?utm_source=www.therundown.ai&utm_medium=newsletter&utm_campaign=google-s-viral-model-changes-ai-image-editing&_bhlid=2d078c877b5bb38f383c5e4b1b6921da95cbfc5a#1
+- Skip to main content # Bringing MCP 2026-07-28 to Claude The fifth spec release of the Model Context Protocol, MCP 2026-07-28, is live today. The latest spec moves MCP to a stateless core, while hardening authorization and graduating official extensions. Support is being rolled out across Claude products. ## What's new in MCP MCP recently surpassed 400M monthly SDK downloads, a 4x increase this year, and has become the industry standard for connecting AI agents to applications. MCP 2026-07-28 is one of the most significant spec releases to date: Stateless core. MCP moves from a bidirectional stateful protocol to a request/response model. Servers can now deploy on serverless and edge infrastructure. This simplifies the experience of building MCP servers for Claude and scaling their usage as they grow in adoption. Standardized extensions. MCP Apps and Tasks now ship under a versioned extensions framework, giving developers a formal path to add capabilities like interactive UIs and long-running work without changing the core protocol. Auth hardening. Authorization now aligns with production OAuth 2.0 and OIDC deployments, so MCP servers connect to enterprise identity systems like Entra or Okta without workarounds. Companies across the ecosystem have been building on the new spec alongside the MCP community since beta: “More builders are using our MCP server to bring generated outputs into Figma's canvas, where they can explore, riff and refine them with their team into products that stand out. As that usage grows, our stateless architecture can scale with it, and with MCP Apps, Tasks, and Enterprise-Managed Auth, we can do even more to keep design and code together in one, connected flow.” “MCP is the industry standard for connecting AI agents to tools and data, and Intuit is proud to support the new MCP 2026-07-28 spec. The stateless protocol core and extensions framework, including MCP Apps and Tasks, let our technologists and customers build and connect agentic experiences at enterprise scale, and allow Intuit to continue delivering trusted financial intelligence experiences to its 100 million consumers and businesses, wherever they choose to work.” “The stateless core in the 2026-07-28 spec makes MCP a first-class HTTP workload with no session management to work around. Our customers wanted MCPs on Netlify to be as simple as the rest of the platform and this new spec unlocks this at its core. Building MCP Apps into the new extensions framework is a huge step forward for scalability, accessibility, and capability across the whole ecosystem.” “Moving MCP to a stateless protocol makes it easier to scale our own service and makes it easier for us to add analytics for our customers' MCP servers. This helps us show people how their MCP tools are being used and what tools are missing that their users would want to use. It's great to see this protocol growing in this direction.” “Anthropic pairs frontier models with a developer experience that keeps raising the bar. The stateless core in the open MCP 2026-07-28 spec reduces the complexity we manage, so we can ship more features to our customers, faster and at scale.” “At Zoom, we believe organizational context is what enables AI to deliver meaningful work, which is why we've built MCP servers that securely bring Zoom meeting intelligence into AI platforms like Claude. The new MCP spec makes it far easier to deploy and scale MCP servers on standard HTTP infrastructure — so users get Zoom's meeting intelligence faster and more reliably, right inside the AI workflows they depend on every day.” 1/6 See the MCP 2026-07-28 release announcement for full details on the new spec. ## Advancing MCP in Claude Claude now lists over 950 MCP servers in the connectors directory, used by millions of people every day. This year we shipped support for new protocol extensions alongside features that make MCP easier to build on and deploy: MCP Apps let servers render interactive UI directly in the conversation. Users can see what a connector is doing and work with it inline, without switching tabs. Enterprise-managed auth lets admins provision MCP connectors for their whole organization through their identity provider. Admins authorize a connector once, users inherit access through their existing IdP groups, and it's connected on first login: zero-touch setup for the end user. Observability for developers building connectors gives published connectors in our directory a dashboard showing how they perform across Claude product surfaces. Developers can use it to track adoption, diagnose errors and latency, and break down usage by product. MCP tunnels (research preview) connect Claude to MCP servers inside a private network without exposing them to the public internet. Teams can bring internal tools to Claude with no inbound firewall rules, no public endpoints, and no IP allowlisting on the origin. The stateless core, standardized extensions, and hardened auth in 2026-07-28 will help developers bring more applications to Claude, with a lower-friction, more consistent end-user experience. We'll continue investing in MCP as an open standard alongside the community, and in the Claude features that make MCP more accessible and effective in production. ## Getting started Explore the spec and SDKs to get started. Support is rolling out across Claude products soon. If you’re planning to submit your MCP server to Claude’s connectors directory, you can learn more here.
+
+```yaml
+request_id: a7e3702658e246c5a1ba720ed9c0c435
+```
+````
+
+**3. `extract` —— 取可引用的规范仓库正文**
+
+```json
+{ "url": "https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/README.md" }
+```
+
+````text
+{"url":"https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/README.md","title":"","content":"# Model Context Protocol (MCP)\n\n_Just heard of MCP and not sure where to start? Check out our [documentation website](https://modelcontextprotocol.io)._\n\nThis repo contains the:\n\n- MCP specification\n- MCP protocol schema\n- Official MCP documentation\n\nThe schema is [defined in TypeScript](schema/2026-07-28/schema.ts) first, but\n[made available as JSON Schema](schema/2026-07-28/schema.json) as well, for wider\ncompatibility.\n\nThe official MCP documentation is built using Mintlify and available at\n[modelcontextprotocol.io](https://modelcontextprotocol.io).\n\n## Authors\n\nThe Model Context Protocol was created by David Soria Parra ([@dsp](https://github.com/dsp)) and Justin Spahr-Summers ([@jspahrsummers](https://github.com/jspahrsummers)).\n\n## Contributing\n\nContributions are made through [working groups](https://modelcontextprotocol.io/community/working-interest-groups)\nand issues:\n\n- **Changes to the specification** are discussed and approved in the relevant working group\n  before a pull request or [SEP](https://modelcontextprotocol.io/community/sep-guidelines) is opened.\n- **Pull requests** may only be opened by members of the `modelcontextprotocol` GitHub organization.\n- **Everyone else** can report bugs and problems by\n  [opening an issue](https://github.com/modelcontextprotocol/modelcontextprotocol/issues/new/choose)\n  or get involved by joining a working group.\n\nSee [CONTRIBUTING.md](./CONTRIBUTING.md) for details.\n\n## License\n\nThis project is licensed under the [MIT License](LICENSE).\n"}
+````
+
+`extract` 会把 Markdown 正文放进 `content` 字段，可直接引用。
+
+> 示例 1 覆盖 `get_sub_domains`、`batch_search`、`extract`；示例 2 覆盖 `search`、`batch_search`、`extract`。
