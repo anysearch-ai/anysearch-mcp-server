@@ -423,97 +423,93 @@ OMP 会在配置值中展开 `${VAR}` 和 `${VAR:-default}`。设置 `ANYSEARCH_
 
 下面两个示例分别对应**垂类搜索**和**通用搜索**，两者都会用到 `batch_search` 和 `extract`；真实使用时按 query 的信息类型选一个即可。
 
-### 示例 1：垂类搜索（对比两个货币对）
+### 示例 1：垂类搜索（对比 React 与 Vue 的状态管理文档）
 
 ```text
-帮我对比美元兑人民币和欧元兑美元的当前汇率，并给出可引用的汇率数据来源。
+帮我对比 React 和 Vue 官方文档中关于组件状态管理的写法，并给出可引用的文档来源。
 ```
 
-这条 query 有明确的垂直领域（外汇行情），流程是 3 步：`get_sub_domains` → `batch_search` → `extract`。
+这条 query 有明确的垂直领域（代码文档），流程是 3 步：`get_sub_domains` → `batch_search` → `extract`。
 
-**1. `get_sub_domains` —— 取 finance 的合法子领域与参数**
+**1. `get_sub_domains` —— 取 code 的合法子领域与参数**
 
 ```json
-{ "domains": ["finance"] }
+{ "domains": ["code"] }
 ```
 
-接口返回 6 个子领域及各自参数 schema（完整说明较长，这里只列名称与用途）：
+接口返回 2 个子领域及各自参数 schema：
 
-| sub_domain            | 用途                                       |
-| --------------------- | ------------------------------------------ |
-| `finance.calendar`    | 财报、分红、IPO、经济数据日历              |
-| `finance.fundamental` | 财报、估值、分析师评级、股东结构、SEC 文件 |
-| `finance.macro`       | GDP、CPI、利率、货币供应等宏观指标         |
-| `finance.news`        | 财经新闻、公司公告、券商摘要               |
-| `finance.quote`       | 股票、外汇、加密、商品、指数、ETF 行情     |
-| `finance.screen`      | 按行业和国家筛选股票                       |
+| sub_domain     | 用途                                                         | 参数                           |
+| -------------- | ------------------------------------------------------------ | ------------------------------ |
+| `code.doc`     | 按库名与主题查询 npm/PyPI/Cargo 等生态的开发者文档与代码示例 | `library`（必填）              |
+| `code.snippet` | 在 1M+ 公开 GitHub 仓库中按正则与语言搜索真实代码实现        | `lang`、`path`、`repo`（可选） |
 
 `sub_domain` 和 `params` 的实际键名以本次返回为准。
 
-**2. `batch_search`（垂类）—— 两个 `finance.quote` 子查询并行取价**
+**2. `batch_search`（垂类）—— 两个 `code.doc` 子查询并行取文档**
 
 ```json
 {
   "queries": [
     {
-      "query": "USD CNY spot rate",
-      "domain": "finance",
-      "sub_domain": "finance.quote",
-      "sub_domain_params": { "type": "forex", "symbol": "USDCNY" },
-      "max_results": 10
+      "query": "React 官方文档 组件状态管理 useState",
+      "domain": "code",
+      "sub_domain": "code.doc",
+      "sub_domain_params": { "library": "react" },
+      "max_results": 2
     },
     {
-      "query": "EUR USD spot rate",
-      "domain": "finance",
-      "sub_domain": "finance.quote",
-      "sub_domain_params": { "type": "forex", "symbol": "EURUSD" },
-      "max_results": 10
+      "query": "Vue 官方文档 组件状态管理 ref reactive",
+      "domain": "code",
+      "sub_domain": "code.doc",
+      "sub_domain_params": { "library": "vue" },
+      "max_results": 2
     }
   ]
 }
 ```
 
 ````text
-## Query 1: USD CNY spot rate
+## Query 1: React 官方文档 组件状态管理 useState
 
-## Search Results (1 results, 453ms)
+## Search Results (2 results, 2858ms)
 
-### 1. USD/CNY Exchange Rate
-- **URL**: https://site.financialmodelingprep.com/?ref=quote-USDCNY
-- Pair: USD/CNY | Rate: 6.6772 | Change: +0.0107 | Change%: +0.16% | Open: 6.6660 | PrevClose: 6.6665 | DayHigh: 6.6794 | DayLow: 6.6623 | YearHigh: 7.1155 | YearLow: 6.6369 | Avg50: 6.6800 | Avg200: 6.7500
+### 1. useState – React 中文文档
+- **URL**: https://zh-hans.react.dev/reference/react/useState
+- ## 参考 ### `useState(initialState)` 在组件的顶层调用 `useState` 来声明一个 [状态变量](https://zh-hans.react.dev/learn/state-a-components-memory)。 ``` import { useState } from 'react';function MyComponent() { const [age, setAge] = useState(28); const [name, setName] = useState('Taylor'); const [todos, setTodos] = useState(() => createTodos()); // ... ``` 按照惯例使用 [数组解构](https://javascript.info/destructuring-assignment) 来命名状态变量，例如 `[something, setSomething]`。 ## 用法 ### 为组件添加状态 在组件的顶层调用 `useState` 来声明一个或多个 [状态变量](https://zh-hans.react.dev/learn/state-a-components-memory)。 ``` import { useState } from 'react';function MyComponent() { const [age, setAge] = useState(42); const [name, setName] = useState('Taylor'); // ... ``` 按照惯例使用 [数组解构](https://javascript.info/destructuring-assignment) 来命名状态变量，例如 `[something, setSomething]`。 `useState` 返回一个只包含两个项的数组： 1. 该状态变量 当前的 state，最初设置为你提供的 初始化 state。 2. `set`函数，它允许你在响应交互时将 state 更改为任何其他值。 要更新屏幕上的内容，请使用新状态调用 `set` 函数： ``` function handleClick() { setName('Robin');} ``` React 会存储新状态，使用新值重新渲染组件，并更新 UI。 ### 避免重复创建初始状态 React 只在初次渲染时保存初始状态，后续渲染时将其忽略。 ``` function TodoList() { const [todos, setTodos] = useState(createInitialTodos()); // ... ``` 尽管 `createInitialTodos()` 的结果仅用于初始渲染，但你仍然在每次渲染时调用此函数。如果它创建大数组或执行昂贵的计算，这可能会浪费资源。 为了解决这个问题，你可以将它 **作为初始化函数传递给** `useState`： ``` function TodoList() { const [todos, setTodos] = useState(createInitialTodos); // ... ``` 请注意，你传递的是 `createInitialTodos` **函数本身**，而不是 `createInitialTodos()` 调用该函数的结果。如果将函数传递给 `useState`，React 仅在初始化期间调用它。
 
-```yaml
-request_id: 6d36ab15bf624488b336a4f1fc951571
-```
+### 2. useState – React
+- **URL**: https://react.dev/reference/react/useState
+- `useState` is a React Hook that lets you add a [state variable](https://react.dev/learn/state-a-components-memory) to your component. ``` const [state, setState] = useState(initialState) ``` ## Reference ### `useState(initialState)` Call `useState` at the top level of your component to declare a [state variable.](https://react.dev/learn/state-a-components-memory) ``` import { useState } from 'react';function MyComponent() { const [age, setAge] = useState(28); const [name, setName] = useState('Taylor'); const [todos, setTodos] = useState(() => createTodos()); // ... ``` The convention is to name state variables like `[something, setSomething]` using [array destructuring.](https://javascript.info/destructuring-assignment) ## Usage ### Adding state to a component Call `useState` at the top level of your component to declare one or more [state variables.](https://react.dev/learn/state-a-components-memory) ``` import { useState } from 'react';function MyComponent() { const [age, setAge] = useState(42); const [name, setName] = useState('Taylor'); // ... ``` The convention is to name state variables like `[something, setSomething]` using [array destructuring.](https://javascript.info/destructuring-assignment) `useState` returns an array with exactly two items: 1. The current state of this state variable, initially set to the initial state you provided. 2. The `set`function that lets you change it to any other value in response to interaction. To update what’s on the screen, call the `set` function with some next state: ``` function handleClick() { setName('Robin');} ``` React will store the next state, render your component again with the new values, and update the UI.
 
 ---
 
-## Query 2: EUR USD spot rate
+## Query 2: Vue 官方文档 组件状态管理 ref reactive
 
-## Search Results (1 results, 456ms)
+## Search Results (2 results, 4886ms)
 
-### 1. EUR/USD Exchange Rate
-- **URL**: https://site.financialmodelingprep.com/?ref=quote-EURUSD
-- Pair: EUR/USD | Rate: 1.0969 | Change: +0.0002 | Change%: +0.02% | Open: 1.0969 | PrevClose: 1.0967 | DayHigh: 1.1000 | DayLow: 1.0957 | YearHigh: 1.2083 | YearLow: 1.0953 | Avg50: 1.1200 | Avg200: 1.1500
+### 1. Ref Unwrapping as Reactive Object Property
+- **URL**: https://vuejs.org/guide/essentials/reactivity-fundamentals
+- A ref is automatically unwrapped when accessed or mutated as a property of a reactive object. Use this to treat refs like normal properties inside reactive objects. ```js const count = ref(0) const state = reactive({ count }) console.log(state.count) // 0 state.count = 1 console.log(count.value) // 1 ```
 
-```yaml
-request_id: 6866d24cdfa84d56bd0605c2c3456cd8
-```
+### 2. Create reactive state with ref in script setup
+- **URL**: https://vuejs.org/api/sfc-script-setup
+- Reactive state must be explicitly created using Reactivity APIs. Refs are automatically unwrapped when referenced in templates. ```vue import { ref } from 'vue' const count = ref(0) {{ count }} ```
 ````
 
-两个货币对互相独立，单条失败不影响另一条。
+两条子查询互相独立，单条失败不影响另一条。
 
-**3. `extract` —— 取可引用的汇率来源正文**
+**3. `extract` —— 取可引用的官方文档正文**
 
 ```json
-{ "url": "https://api.frankfurter.app/latest?from=USD&to=CNY" }
+{ "url": "https://vuejs.org/guide/essentials/reactivity-fundamentals.md" }
 ```
 
 ````text
-{"url":"https://api.frankfurter.app/latest?from=USD\u0026to=CNY","title":"","content":"{\"amount\":1.0,\"base\":\"USD\",\"date\":\"2026-11-20\",\"rates\":{\"CNY\":6.6777}}"}
+{"url":"https://vuejs.org/guide/essentials/reactivity-fundamentals.md","title":"","content":"---\nurl: /guide/essentials/reactivity-fundamentals.md\n---\n\n# Reactivity Fundamentals {#reactivity-fundamentals}\n\n## Declaring Reactive State \\* {#declaring-reactive-state}\n\nWith the Options API, we use the `data` option to declare reactive state of a component. ...（正文较长，此处省略）"}
 ````
 
-`content` 里就是原始 JSON 字符串，可直接作为可引用的汇率来源。
+`content` 里就是页面 Markdown 正文（此处为便于阅读已截断），可直接作为可引用的文档来源。
 
 ### 示例 2：通用搜索（MCP 官方文档）
 
