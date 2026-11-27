@@ -1,0 +1,30 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.anysearch-ai/anysearch-mcp-server",
+  "title": "AnySearch",
+  "description": "Search the web and domain-specific sources, run parallel queries, and extract web page content.",
+  "repository": {
+    "url": "https://github.com/anysearch-ai/anysearch-mcp-server",
+    "source": "github"
+  },
+  "websiteUrl": "https://www.anysearch.com/docs/mcp-install",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.anysearch.com/mcp",
+      "headers": [
+        {
+          "name": "X-Anysearch-Client",
+          "value": "mcp/1.0.0"
+        },
+        {
+          "name": "Authorization",
+          "description": "Optional. Enter Bearer followed by a space and your AnySearch API key.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}
